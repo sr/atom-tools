@@ -1,0 +1,90 @@
+# Installation #
+
+Move the atom directory to somewhere in your $RUBYLIB.
+
+# Usage #
+
+  entry = Atom::Entry.new
+
+  entry.title = "Argh!"
+
+  author = entry.authors.new
+  author.name = "just this guy, you know?"
+
+  file = entry.links.new
+  file["rel"] = "enclosure"
+  file["href"] = "http://example.com/file.ogg"
+
+text content:
+
+  entry.content = "foo"
+
+XHTML content:
+  (content["type"] defaults to text unless it's set after content *every time*):
+
+  xml = REXML::Document.new(some_url_func("http://ruby-lang.org"))
+  entry.content = xml
+  entry.content["type"] = "xhtml"
+
+# To and From XML #
+
+from:
+
+  entry = REXML::Document.new("entry.xml").to_atom_entry
+
+to:
+
+**WARNING**: 
+I'm waiting on the APP WG to decide whether atom:entrys are always atom:entrys, so this isn't guaranteed to give you valid output. You can call valid? on an entry, but this isn't always helpful
+
+  entry.to_xml
+  
+returns a REXML::Document and
+
+  entry.to_s
+
+serializes that document.
+
+# Extension Elements #
+
+  irt = REXML::Element.new("in-reply-to")
+  irt.add_namespace "http://purl.org/syndication/thread/1.0"
+
+  irt.attributes["id"] = "tag:entries.com,2005:1"
+
+  entry.extensions << irt
+
+# YAML #
+
+For easy-authoring, atom-tools can now slurp an atom:entry from YAML:
+
+  yaml = << END
+    title: Atom-Drunk Pirates Run Amok!
+    tags: tag1 tag2
+    authors:
+    -
+      name: Brendan Taylor
+      email: whateley@gmail.com
+    -
+      name: Harvey
+      uri: http://fake.com/
+
+    type: xhtml
+    content: |
+      <p>blah blah blah blah</p>
+
+      <p>and so on.</p>
+  END
+
+  entry = Atom::Entry.from_yaml(yaml)
+
+# Feeds and Collections #
+
+For the time being, feeds can be read but not produced.
+
+  feed = Atom::Feed.new("http://example.org/feed.atom")
+
+  feed.update!
+
+  feed.entries
+    => [ #<Atom::Entry:0xb7... ]

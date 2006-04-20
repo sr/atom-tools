@@ -1,0 +1,3 @@
+- xml:base
+- make summary & title atom text constructs (they're assumed to be text now)
+- Digest authentication
