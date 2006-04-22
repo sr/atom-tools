@@ -22,9 +22,12 @@ text content:
 XHTML content:
   (content["type"] defaults to text unless it's set after content *every time*):
 
-  xml = REXML::Document.new(some_url_func("http://ruby-lang.org"))
+  xml = REXML::Document.new(open("http://ruby-lang.org").read)
   entry.content = xml
   entry.content["type"] = "xhtml"
+
+  entry.title = REXML::Document.new("<em>goodness</em> gracious")
+  entry.title["type"] = "xhtml"
 
 # To and From XML #
 
@@ -32,11 +35,12 @@ from:
 
   entry = REXML::Document.new("entry.xml").to_atom_entry
 
-to:
-
-**WARNING**: 
+    **WARNING**
 I'm waiting on the APP WG to decide whether atom:entrys are always atom:entrys, so this isn't guaranteed to give you valid output. You can call valid? on an entry, but this isn't always helpful
+    **WARNING**
 
+to:
+  
   entry.to_xml
   
 returns a REXML::Document and
