@@ -2,7 +2,6 @@
 
 require "test/unit"
 
-require "atom/entry"
 require "atom/yaml"
 require "atom/xml"
 
