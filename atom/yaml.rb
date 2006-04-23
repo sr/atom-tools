@@ -2,53 +2,69 @@ require "atom/entry"
 require "yaml"
 
 # all for converting to and from YAML. the format's described in README.
-#
-# limitations:
-# - content/@src isn't handled
 module Atom
+  class Time
+    def taguri
+      nil
+    end
+  end
+
   class Element < Hash
+    def taguri
+      nil
+    end
+
+    def to_yaml_properties
+      self.class.elements.find_all do |n,k,r|
+        v = get(n)
+        v and not (v.respond_to? :empty? and v.empty?)
+      end.map { |n,k,r| "@#{n}" }
+    end
+
     def to_yaml( opts = {} )
       YAML::quick_emit( object_id, opts ) do |out|
-        out.map( nil, to_yaml_style ) do |map|
-          self.class.attrs.each do |attr|
-            value = self[attr]
-            map.add( attr, value ) if value
+        out.map( taguri, to_yaml_style ) do |map|
+          self.to_yaml_properties.each do |m|
+            map.add( m[1..-1], instance_variable_get( m ) )
           end
         end
       end
     end
   end
 
-  class Person
+  class AttrEl < Atom::Element
     def to_yaml( opts = {} )
       YAML::quick_emit( object_id, opts ) do |out|
         out.map( nil, to_yaml_style ) do |map|
-          map.add("name", @name) if @name
-          map.add("uri", @uri) if @uri
-          map.add("email", @email) if @email
+          self.class.attrs.each do |n,r|
+            map.add( n.to_s, self[n.to_s] ) if self[n.to_s]
+          end
         end
       end
     end
+  end
+
+  class Text < Atom::Element
+    def taguri
+      nil
+    end
+
+    def to_yaml( opts = {} )
+      YAML::quick_emit( object_id, opts ) do |out|
+        out.scalar(taguri, to_s, :quote2)
+      end
+    end
+  end
+
+  YAML::add_domain_type( 'necronomicorp.com,2006', 'entry' ) do |type,val|
+    Atom::Entry::maker( val )
   end
 
   class Entry
-    def to_yaml( opts = {} )
-      YAML::quick_emit( object_id, opts ) do |out|
-        out.map( nil, to_yaml_style ) do |map|
-          self.class.element.each do |name,kind,req|
-            next if name == "content"
-            v = get name
-            map.add( name, v ) if v
-          end
-         
-          if content
-            map.add( "type", content["type"] )
-            map.add( "content", content.to_s )
-          end
-        end
-      end
+    def to_yaml_type
+      '!necronomicorp.com,2006/entry'
     end
-
+  
     def self.from_yaml yaml
       hash = if yaml.kind_of? Hash
         yaml
