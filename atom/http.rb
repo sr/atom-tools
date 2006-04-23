@@ -57,7 +57,7 @@ class String
 end
 
 module Atom
-  UA = "atom-tools 0.1.999"
+  UA = "atom-tools 0.2.1"
 
   class HTTP
     attr_accessor :user, :pass
