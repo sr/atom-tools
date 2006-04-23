@@ -50,7 +50,7 @@ module REXML
         type = text.ns_attr("type")
         src = text.ns_attr("src")
 
-        if src
+        if src                          # XXX ignore src= outside of <content/>
           # content is out-of-line
           entry.send( "#{name}=".to_sym, "a")     # XXX this is really dumb
           entry.send(name.to_sym)["src"] = src
@@ -76,39 +76,22 @@ module REXML
 
       entry = Atom::Entry.new
 
+      # Text constructs
       entry.class.elements.find_all { |n,k,r| k.ancestors.member? Atom::Text }.
         each do |n,k,r|
           fill_text_construct(entry, n)
       end
 
-      entry.id = get_atom_text("id")
-
-      entry.published = get_atom_text("published")
-      entry.updated = get_atom_text("updated")
-
-      get_extensions.each do |elem|
-        entry.extensions << elem.dup # otherwise they get removed from the doc
+      ["id", "published", "updated", "icon", "logo", "generator"].each do |name|
+        entry.send("#{name}=".to_sym, get_atom_text(name))
       end
 
-      get_atom_elements("author").each do |elem|
-        name = elem.get_atom_text "name"
-
-        # <name/> is required
-        next if name.nil?
-
-        author = entry.authors.new
-        
-        elem.elements.each do |info|
-          # XXX extension elements here
-          next unless info.namespace == Atom::NS
-      
-          case info.name
-          when "name"
-            author.name = info.text
-          when "uri"
-            author.uri = info.text
-          when "email"
-            author.email = info.text
+      ["author", "contributor"].each do |type|
+        get_atom_elements(type).each do |elem|
+          person = entry.send("#{type}s".to_sym).new
+       
+          ["name", "uri", "email"].each do |name|
+            person.send("#{name}=".to_sym, elem.get_atom_text(name))
           end
         end
       end
@@ -122,6 +105,11 @@ module REXML
             thing[name.to_s] = value if value
           end
         end
+      end
+      
+      # extension elements
+      get_extensions.each do |elem|
+        entry.extensions << elem.dup # otherwise they get removed from the doc
       end
 
       entry
