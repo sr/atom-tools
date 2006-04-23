@@ -2,7 +2,8 @@
 
 Move the atom directory to somewhere in your $RUBYLIB.
 
-# Usage #
+# Basic Usage #
+  require "atom/entry"
 
   entry = Atom::Entry.new
 
@@ -30,11 +31,7 @@ XHTML content:
   entry.title["type"] = "xhtml"
 
 # To and From XML #
-
-from:
-
-  entry = REXML::Document.new("entry.xml").to_atom_entry
-
+    
     **WARNING**
 I'm waiting on the APP WG to decide whether atom:entrys are always atom:entrys, so this isn't guaranteed to give you valid output. You can call valid? on an entry, but this isn't always helpful
     **WARNING**
@@ -49,18 +46,26 @@ returns a REXML::Document and
 
 serializes that document.
 
+
+from:
+  require "atom/entry"
+
+  entry = REXML::Document.new("entry.xml").to_atom_entry
+
 # Extension Elements #
 
   irt = REXML::Element.new("in-reply-to")
   irt.add_namespace "http://purl.org/syndication/thread/1.0"
 
-  irt.attributes["id"] = "tag:entries.com,2005:1"
+  irt.attributes["ref"] = "tag:entries.com,2005:1"
 
   entry.extensions << irt
 
 # YAML #
 
 For easy-authoring, atom-tools can now slurp an atom:entry from YAML:
+
+  require "atom/yaml"
 
   yaml = << END
     title: Atom-Drunk Pirates Run Amok!
@@ -73,7 +78,6 @@ For easy-authoring, atom-tools can now slurp an atom:entry from YAML:
       name: Harvey
       uri: http://fake.com/
 
-    type: xhtml
     content: |
       <p>blah blah blah blah</p>
 
@@ -86,9 +90,39 @@ For easy-authoring, atom-tools can now slurp an atom:entry from YAML:
 
 For the time being, feeds can be read but not produced.
 
-  feed = Atom::Feed.new("http://example.org/feed.atom")
+  require "atom/feed"
 
+  feed = Atom::Feed.new("http://example.org/feed.atom")
   feed.update!
+  feed.entries
+    => [ #<Atom::Entry:0xb7...> ]
+
+Incremental feeds are supported (see mnot's feed-history draft).
+
+  feed.get_everything!
 
   feed.entries
-    => [ #<Atom::Entry:0xb7... ]
+    => [ # the entries in the logical feed ]
+
+# Getting down with the PP #
+
+  require "atom/collection"
+
+  coll = Atom::Collection.new(coll_uri)
+
+  entry = Atom::Entry.new
+  coll.post! entry
+
+  entry = coll.get_url(coll.entries.first.edit_url)
+
+  entry.title = "an updated title"
+  coll.put! entry
+  coll.delete! entry
+
+Special HTTP requirements (eg. authentication) can be met by passing an Atom::HTTP object when a feed or collection is initialized
+
+  http = Atom::HTTP.new 
+  http.user, http.pass = "username", "password"
+  collection = Atom::Collection.new("http://example.org/feed.atom", http)
+
+  # if the http object runs into a 401 Authorization Required http will respond with the giver username and password

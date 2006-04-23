@@ -2,3 +2,4 @@
 - Digest authentication
 - atom:source
 - more functional atom:feed objects
+- caching for Atom::HTTP
