@@ -6,11 +6,7 @@ module Atom
     def self.new date
       return if date.nil? # so we can blindly copy from the XML
 
-      date = if date.respond_to? :iso8601
-        date
-      else
-        Time.parse date
-      end
+      date = if date.respond_to?(:iso8601); date else Time.parse date; end
         
       def date.to_s
         iso8601
@@ -24,10 +20,6 @@ module Atom
     Class.new(Array) do
       @class = klass
 
-      def self.holds
-        @class
-      end
-
       def new
         item = self.class.holds.new
         self << item
@@ -39,25 +31,17 @@ module Atom
         collect do |item| item.to_element end
       end
 
-      def self.single? 
-        true 
-      end
-
-      def taguri
-      end
+      def self.holds; @class end
+      def self.single?; true end
+      def taguri; nil end
     end
   end
 
   class Element < Hash
     attr_reader :extensions
 
-    def self.attrs
-      @attrs || []
-    end
-
-    def self.elements
-      @elements || []
-    end
+    def self.attrs; @attrs || [] end
+    def self.elements; @elements || [] end
 
     def self.required
       @elements.find { |name,kind,req| req }
@@ -95,17 +79,13 @@ module Atom
     end
 
     def [] key
-      unless valid_key? key
-        raise RuntimeError, "this element (#{local_name}) doesn't have that attribute '#{key}'"
-      end
-
+      test_key key
+   
       super
     end
-
+     
     def []= key, value
-      unless valid_key? key
-        raise RuntimeError, "this element (#{local_name}) doesn't have the attribute '#{key}'"
-      end
+      test_key key
 
       super
     end
@@ -158,6 +138,12 @@ module Atom
     end
     
     private
+    def test_key key
+      unless valid_key? key
+        raise RuntimeError, "this element (#{local_name}) doesn't have that attribute '#{key}'"
+      end
+    end
+
     def valid_key? key
       self.class.attrs.find { |name,req| name.to_s == key }
     end
@@ -172,8 +158,7 @@ module Atom
   end
   
   # this facilitates YAML output
-  class AttrEl < Atom::Element
-  end
+  class AttrEl < Atom::Element; end
 
   class Link < Atom::AttrEl
     attrb :href, true

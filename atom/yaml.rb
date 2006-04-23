@@ -4,15 +4,11 @@ require "yaml"
 # all for converting to and from YAML. the format's described in README.
 module Atom
   class Time
-    def taguri
-      nil
-    end
+    def taguri; nil end
   end
 
   class Element < Hash
-    def taguri
-      nil
-    end
+    def taguri; nil end
 
     def to_yaml_properties
       self.class.elements.find_all do |n,k,r|
@@ -45,10 +41,7 @@ module Atom
   end
 
   class Text < Atom::Element
-    def taguri
-      nil
-    end
-
+    def taguri; nil end
     def to_yaml( opts = {} )
       YAML::quick_emit( object_id, opts ) do |out|
         out.scalar(taguri, to_s, :quote2)
@@ -56,21 +49,13 @@ module Atom
     end
   end
 
-  YAML::add_domain_type( 'necronomicorp.com,2006', 'entry' ) do |type,val|
-    Atom::Entry::maker( val )
-  end
-
   class Entry
     def to_yaml_type
-      '!necronomicorp.com,2006/entry'
+      '!necronomicorp.com,2006/entry' # XXX why doesn't this show up?
     end
   
-    def self.from_yaml yaml
-      hash = if yaml.kind_of? Hash
-        yaml
-      else
-        YAML.load(yaml)
-      end
+    def self.from_yaml yaml # XXX different name?
+      hash = if yaml.kind_of?(Hash); yaml else YAML.load(yaml); end
 
       entry = Atom::Entry.new
 
