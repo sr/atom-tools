@@ -1,3 +1,4 @@
-- xml:base
-- make summary & title atom text constructs (they're assumed to be text now)
+- xml:base, xml:lang
 - Digest authentication
+- atom:source
+- more functional atom:feed objects
