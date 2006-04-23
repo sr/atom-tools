@@ -9,12 +9,12 @@ module Atom
     attrb :type
     attrb :src
 
-    def initialize arg
-      @content = arg
+    def initialize value, name
+      @content = value
       @content ||= "" # in case of nil
       self["type"] = "text"
       
-      super()
+      super name
     end
 
     def to_s
@@ -52,10 +52,6 @@ module Atom
     end
     
     private
-    def valid_type? type
-      ["text", "xhtml", "html"].member? type
-    end
-
     def convert_contents e
       if self["type"] == "xhtml"
         xhtml = REXML::Document.new("<div>#{@content}</div>")
@@ -67,6 +63,10 @@ module Atom
       elsif self["type"] == "html"
         @content.to_s
       end
+    end
+    
+    def valid_type? type
+      ["text", "xhtml", "html"].member? type
     end
   end
 
