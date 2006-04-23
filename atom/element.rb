@@ -42,6 +42,9 @@ module Atom
       def self.single? 
         true 
       end
+
+      def taguri
+      end
     end
   end
 
@@ -80,14 +83,14 @@ module Atom
     def self.define_accessor(name,kind)
       define_method "#{name}=".to_sym do |value|
         return unless value
-        set(name, kind.new(value))
-        get(name).instance_eval do
-          @local_name = name.to_s
-          
-          def local_name
-            @local_name
-          end
+        
+        i = if kind.ancestors.member? Atom::Element
+          kind.new(value, name.to_s)
+        else
+          kind.new(value)
         end
+       
+        set(name, i)
       end
     end
 
@@ -107,8 +110,9 @@ module Atom
       super
     end
 
-    def initialize
+    def initialize name = nil
       @extensions = REXML::Element.new("extensions")
+      @local_name = name
 
       self.class.elements.each do |name,kind,req|
         if kind.respond_to? :single?
@@ -119,7 +123,7 @@ module Atom
     end
 
     def local_name
-      self.class.name.split("::").last.downcase
+      @local_name || self.class.name.split("::").last.downcase
     end
 
     def to_element
@@ -167,7 +171,11 @@ module Atom
     end
   end
   
-  class Link < Atom::Element
+  # this facilitates YAML output
+  class AttrEl < Atom::Element
+  end
+
+  class Link < Atom::AttrEl
     attrb :href, true
     attrb :rel
     attrb :type
@@ -176,7 +184,7 @@ module Atom
     attrb :length
   end
   
-  class Category < Atom::Element
+  class Category < Atom::AttrEl
     attrb :term, true
     attrb :scheme
     attrb :label

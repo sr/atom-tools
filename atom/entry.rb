@@ -30,8 +30,15 @@ module Atom
     element :subtitle, Atom::Text
     element :summary, Atom::Text
 
+    def initialize
+      super "entry"
+      
+      # autogenerate ID here?
+      yield self if block_given?
+    end
+
     def inspect
-      "#<Atom::Entry id=#{self.id}>"
+      "#<Atom::Entry id:'#{self.id}'>"
     end
 
     def update!
