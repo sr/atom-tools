@@ -44,6 +44,30 @@ module REXML
       self.attributes[attr]
     end
    
+    def fill_text_construct(entry, name)
+      text = get_atom_element(name)
+      if text
+        type = text.ns_attr("type")
+        src = text.ns_attr("src")
+
+        if src
+          # content is out-of-line
+          entry.send( "#{name}=".to_sym, "a")     # XXX this is really dumb
+          entry.send(name.to_sym)["src"] = src
+        elsif type == "xhtml"
+          # content is the serialized content of the <div> wrapper
+          entry.send( "#{name}=".to_sym, text.elements[1].children.to_s )
+        else
+          # content is the serialized content of the <content> wrapper
+          entry.send( "#{name}=", text.children.to_s)
+        end
+
+        if type and type != "text"
+          entry.send(name.to_sym)["type"] = type
+        end
+      end
+    end
+
     # REXML Stream parsing API might be more suited to the task?
     def to_atom_entry
       unless self.name == "entry" and self.namespace == Atom::NS
@@ -52,7 +76,10 @@ module REXML
 
       entry = Atom::Entry.new
 
-      entry.title = get_atom_text("title")
+      entry.class.elements.find_all { |n,k,r| k.ancestors.member? Atom::Text }.
+        each do |n,k,r|
+          fill_text_construct(entry, n)
+      end
 
       entry.id = get_atom_text("id")
 
@@ -95,26 +122,6 @@ module REXML
             thing[name.to_s] = value if value
           end
         end
-      end
-
-      content = get_atom_element("content")
-      if content
-        type = content.ns_attr("type")
-        src = content.ns_attr("src")
-
-        if src
-          # content is out-of-line
-          entry.content = "a"           # XXX this is really dumb
-          entry.content["src"] = src
-        elsif type == "xhtml"
-          # content is the serialized content of the <div> wrapper
-          entry.content = content.elements[1].children.to_s
-        else
-          # content is the serialized content of the <content> wrapper
-          entry.content = content.children.to_s
-        end
-
-        entry.content["type"] = type if type
       end
 
       entry
