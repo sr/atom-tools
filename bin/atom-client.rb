@@ -47,10 +47,9 @@ class Atom::Entry
     update!
   end
 
-  # 'twould be nice if this were more modular. 
-  # it's just a hook for when the entry's about to be posted.
   def filter_hook
-    if @content["type"].nil?
+    # so much for actual text content...
+    if @content["type"] == "text"
       self.content = BlueCloth.new( @content.to_s ).to_html
       @content["type"] = "xhtml"
     end
