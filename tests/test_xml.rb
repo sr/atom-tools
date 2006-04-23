@@ -1,11 +1,7 @@
-#!/usr/bin/ruby
-
 require "test/unit"
 
 require "atom/entry"
 require "atom/xml"
-
-require "atom/feed"
 
 class AtomTest < Test::Unit::TestCase
   def test_text_type_text
@@ -125,28 +121,70 @@ class AtomTest < Test::Unit::TestCase
     assert_equal("http://purl.org/", xml.elements["/entry/test"].namespace)
   end
 
-  def test_snarf_xml
-    xml = "<entry xmlns='http://www.w3.org/2005/Atom'>
-<id>http://example.org/app-id</id>
-<title>testing XML</title>
-<author><name>Mr. Safe</name><uri>http://example.com/</uri></author>
-<link href='http://atomenabled.org/'/>
-<content>not much here</content>
-</entry>"
+  def test_extensive_parsing
+str = '<entry xmlns="http://www.w3.org/2005/Atom">
+  <title>Atom draft-07 snapshot</title>
+  <link rel="alternate" type="text/html"
+    href="http://example.org/2005/04/02/atom"/>
+  <link rel="enclosure" type="audio/mpeg" length="1337"
+    href="http://example.org/audio/ph34r_my_podcast.mp3"/>
+  <id>tag:example.org,2003:3.2397</id>
+  <updated>2005-07-31T12:29:29Z</updated>
+  <published>2003-12-13T08:29:29-04:00</published>
+  <author>
+    <name>Mark Pilgrim</name>
+    <uri>http://example.org/</uri>
+    <email>f8dy@example.com</email>
+  </author>
+  <contributor>
+    <name>Sam Ruby</name>
+  </contributor>
+  <contributor>
+    <name>Joe Gregorio</name>
+  </contributor>
+  <content type="xhtml" xml:lang="en"
+    xml:base="http://diveintomark.org/">
+    <div xmlns="http://www.w3.org/1999/xhtml">
+      <p><i>[Update: The Atom draft is finished.]</i></p>
+    </div>
+  </content>
+</entry>'
 
-    entry = REXML::Document.new(xml).to_atom_entry
- 
-    assert_equal("http://example.org/app-id", entry.id)
-    assert_equal("testing XML", entry.title.to_s)
+    entry = REXML::Document.new(str).to_atom_entry 
+  
+    assert_equal("Atom draft-07 snapshot", entry.title.to_s)
+    assert_equal("tag:example.org,2003:3.2397", entry.id)
+  
+    assert_equal(Time.parse("2005-07-31T12:29:29Z"), entry.updated)
+    assert_equal(Time.parse("2003-12-13T08:29:29-04:00"), entry.published)
+
+    assert_equal(2, entry.links.length)
+    assert_equal("alternate", entry.links.first["rel"])
+    assert_equal("text/html", entry.links.first["type"])
+    assert_equal("http://example.org/2005/04/02/atom", entry.links.first["href"])
+
+    assert_equal("enclosure", entry.links.last["rel"])
+    assert_equal("audio/mpeg", entry.links.last["type"])
+    assert_equal("1337", entry.links.last["length"])
+    assert_equal("http://example.org/audio/ph34r_my_podcast.mp3", entry.links.last["href"])
 
     assert_equal(1, entry.authors.length)
-    assert_equal("Mr. Safe", entry.authors.first.name)
-    assert_equal("http://example.com/", entry.authors.first.uri)
+    assert_equal("Mark Pilgrim", entry.authors.first.name)
+    assert_equal("http://example.org/", entry.authors.first.uri)
+    assert_equal("f8dy@example.com", entry.authors.first.email)
     
-    assert_equal(1, entry.links.length)
-    assert_equal("http://atomenabled.org/", entry.links.first["href"])
-
-    assert_equal("not much here", entry.content.to_s)
+    assert_equal(2, entry.contributors.length)
+    assert_equal("Sam Ruby", entry.contributors.first.name)
+    assert_equal("Joe Gregorio", entry.contributors.last.name)
+  
+    assert_equal("xhtml", entry.content["type"])
+   
+    assert_match("<p><i>[Update: The Atom draft is finished.]</i></p>", 
+                 entry.content.to_s)
+    
+    # XXX unimplemented
+    assert_equal("en", entry.content["xml:lang"])
+    assert_equal("http://diveintomark.org", entry.content["xml:base"])
   end
 
   def assert_has_category xml, term
