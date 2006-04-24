@@ -95,25 +95,6 @@ module Atom
       true
     end
 
-    # turns the whole thing into a REXML::Element
-    def to_element
-      root = super
-      root.add_namespace Atom::NS
-      root
-    end
-
-    # guess.
-    def to_xml
-      doc = REXML::Document.new
-      doc << to_element
-      doc
-    end
-    
-    # you're not even trying now.
-    def to_s
-      to_xml.to_s
-    end
-
     # backwards compatibility
     def a_id
       @id

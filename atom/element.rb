@@ -105,7 +105,7 @@ module Atom
     def local_name
       @local_name || self.class.name.split("::").last.downcase
     end
-
+    
     def to_element
       elem = REXML::Element.new(local_name)
 
@@ -135,6 +135,20 @@ module Atom
       end
 
       elem
+    end
+    
+    # guess.
+    def to_xml
+      doc = REXML::Document.new
+      root = to_element
+      root.add_namespace Atom::NS
+      doc << root
+      doc
+    end
+    
+    # you're not even trying now.
+    def to_s
+      to_xml.to_s
     end
     
     private
