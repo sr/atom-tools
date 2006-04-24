@@ -1,5 +1,7 @@
 #!/usr/bin/ruby
 
+# syntax: ./atom-server <port> <path>
+
 require "atom/pub-server"
 require "webrick/httpserver"
 require "atom/feed"
