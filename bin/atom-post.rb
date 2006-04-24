@@ -1,3 +1,5 @@
+#!/usr/bin/ruby
+
 require "atom/collection"
 
 # syntax: ./atom-post.rb <collection-url> [username] [password]

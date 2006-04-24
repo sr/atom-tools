@@ -1,9 +1,22 @@
 require "atom/entry"
+require "atom/element"
 require "atom/http"
 
 module Atom
-  class Feed
-    attr_reader :uri, :entries, :prev, :next
+  class Feed < Atom::Element
+    attr_reader :uri, :prev, :next
+
+    element :id, String, true
+    element :title, Atom::Text, true
+    element :updated, Atom::Time, true
+
+    element :entries, Atom::Multiple(Atom::Entry)
+    
+    element :links, Atom::Multiple(Atom::Link)
+    element :categories, Atom::Multiple(Atom::Category)
+
+    element :authors, Atom::Multiple(Atom::Author)
+    element :contributors, Atom::Multiple(Atom::Contributor)
 
     include Enumerable
 
@@ -11,13 +24,9 @@ module Atom
       @entries = []
       @http = http
 
-      if feed_uri
-        @uri = if feed_uri.kind_of? URI
-          feed_uri
-        else
-          URI.parse(feed_uri)
-        end
-      end
+      @uri = feed_uri.to_uri if feed_uri
+
+      super "feed"
     end
 
     def each &block

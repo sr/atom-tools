@@ -12,11 +12,8 @@ module Atom
     element :title, Atom::Text, true
     element :content, Atom::Content, true
     
-    element :icon, String
-    element :logo, String
-
-    element :generator, String # uri and version attributes
     element :rights, Atom::Text
+    # element :source, Atom::Feed  # complicated.
     
     element :authors, Atom::Multiple(Atom::Author)
     element :contributors, Atom::Multiple(Atom::Contributor)
@@ -25,9 +22,8 @@ module Atom
     element :links, Atom::Multiple(Atom::Link)
     
     element :published, Atom::Time
-    element :updated, Atom::Time
+    element :updated, Atom::Time, true
     
-    element :subtitle, Atom::Text
     element :summary, Atom::Text
 
     def initialize
