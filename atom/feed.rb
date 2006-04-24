@@ -10,6 +10,8 @@ module Atom
     element :title, Atom::Text, true
     element :updated, Atom::Time, true
 
+    element :subtitle, Atom::Text
+
     element :entries, Atom::Multiple(Atom::Entry)
     
     element :links, Atom::Multiple(Atom::Link)
@@ -17,6 +19,12 @@ module Atom
 
     element :authors, Atom::Multiple(Atom::Author)
     element :contributors, Atom::Multiple(Atom::Contributor)
+
+    element :generator, String # uri and version attributes
+    element :icon, String
+    element :logo, String
+
+    element :rights, Atom::Text
 
     include Enumerable
 

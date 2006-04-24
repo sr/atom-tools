@@ -82,7 +82,7 @@ module REXML
           fill_text_construct(entry, n)
       end
 
-      ["id", "published", "updated", "icon", "logo", "generator"].each do |name|
+      ["id", "published", "updated"].each do |name|
         entry.send("#{name}=".to_sym, get_atom_text(name))
       end
 
