@@ -9,25 +9,17 @@ require "atom/feed"
 module Atom
   # @docs must implement [], []=, next_id!, delete
   # including servlet must implement gen_id, url_to_key, key_to_url, do_GET
-  class MemoryCollection < WEBrick::HTTPServlet::AbstractServlet
+  class HashCollection < WEBrick::HTTPServlet::AbstractServlet
     include Atom::AtomPub
+
+    def gen_id(key); "tag:#{$base_uri.host},#{Time.now.year}:/atom/#{key}"; end
+    def key_to_url(req, key); req.script_name + "/" + key; end
+    def url_to_key(url); url.split("/").last; end
 
     def initialize server, docs
       super
 
       @docs = docs
-    end
-
-    def gen_id key
-      "tag:#{$base_uri.host},#{Time.now.year}:/atom/#{key}"
-    end
-    
-    def key_to_url req, key
-      req.script_name + "/" + key
-    end
-
-    def url_to_key url
-      url.split("/").last
     end
 
     def add_edit entry, key
@@ -70,7 +62,7 @@ module Atom
 
       elem = REXML::Element.new("collection", workspace)
       elem.attributes["href"] = $base_uri + "/atom"
-      elem.attributes["title"] = "atom-tools memory collection"
+      elem.attributes["title"] = "atom-tools hash collection"
       REXML::Element.new("member-type", elem).text = "entry"
 
       res['Content-Type'] = "application/atomserv+xml"
@@ -90,7 +82,7 @@ def docs.next_key!
   @last_key.next!
 end
 
-s.mount("/atom", Atom::MemoryCollection, docs)
+s.mount("/atom", Atom::HashCollection, docs)
 s.mount("/", Atom::Introspection)
 
 trap("INT") do
