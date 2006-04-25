@@ -7,13 +7,15 @@ require "atom/pub-server"
 require "webrick/httpserver"
 require "atom/feed"
 
+COLL_TITLE = "atom-tools hash collection"
+
 module Atom
   # @docs must implement [], []=, next_id!, delete
   # including servlet must implement gen_id, url_to_key, key_to_url, do_GET
   class HashCollection < WEBrick::HTTPServlet::AbstractServlet
     include Atom::AtomPub
 
-    def gen_id(key); "tag:#{$base_uri.host},#{Time.now.year}:/atom/#{key}"; end
+    def gen_id(key); "tag:#{$tag_prefix}:/atom/#{key}"; end
     def key_to_url(req, key); req.script_name + "/" + key; end
     def url_to_key(url); url.split("/").last; end
 
@@ -39,6 +41,14 @@ module Atom
           feed << entry
         end
 
+        feed.title = COLL_TITLE
+        feed.id = "tag:#{$tag_prefix}:/atom"
+        feed.updated = Time.now
+
+        l = feed.links.new
+        l["rel"] = "self"
+        l["href"] = $base_uri + "/atom"
+
         feed.to_s
       else
         key = url_to_key(req.request_uri.to_s)
@@ -63,7 +73,7 @@ module Atom
 
       elem = REXML::Element.new("collection", workspace)
       elem.attributes["href"] = $base_uri + "/atom"
-      elem.attributes["title"] = "atom-tools hash collection"
+      elem.attributes["title"] = COLL_TITLE
       REXML::Element.new("member-type", elem).text = "entry"
 
       res['Content-Type'] = "application/atomserv+xml"
@@ -73,6 +83,7 @@ module Atom
 end
 
 $base_uri = URI.parse(ARGV[0])
+$tag_prefix = $base_uri.host + "," + Time.now.year.to_s
 
 s = WEBrick::HTTPServer.new(:Port => $base_uri.port)
 
