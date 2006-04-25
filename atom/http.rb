@@ -86,11 +86,7 @@ module Atom
     def authenticated_request(url_string, method, www_authenticate, 
                                 user, pass, 
                                 body = nil, init_headers = {})
-      headers = { "User-Agent" => UA }.merge(init_headers)
-      
-      url = url_string.to_uri
-        
-      req = method.new("#{url.path}?#{url.query}", headers)
+      req, url = new_request(url_string, method, init_headers)
 
       auth_type = www_authenticate.split[0] # "Digest" or "Basic"
       auth_params = {}
@@ -111,11 +107,8 @@ module Atom
     # performs a regular http request. if it responds 401 
     # then it retries using @user and @pass for authentication
     def http_request(url_string, method, body = nil, init_headers = {})
-      headers = { "User-Agent" => UA }.merge(init_headers)
+      req, url = new_request(url_string, method, init_headers)
       
-      url = url_string.to_uri
-
-      req = method.new("#{url.path}?#{url.query}", headers)
       res = Net::HTTP.start(url.host, url.port) { |h| h.request(req, body) }
 
       if res.kind_of? Net::HTTPUnauthorized
@@ -127,6 +120,18 @@ module Atom
       end
 
       res
+    end
+    
+    private
+    def new_request(url_string, method, init_headers = {})
+      headers = { "User-Agent" => UA }.merge(init_headers)
+      
+      url = url_string.to_uri
+       
+      rel = url.path
+      rel += "?" + url.query if url.query
+
+      [method.new(rel, headers), url]
     end
   end
 end
