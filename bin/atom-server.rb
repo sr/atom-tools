@@ -1,6 +1,6 @@
 #!/usr/bin/ruby
 
-# syntax: ./atom-server <port> <path>
+# syntax: ./atom-server <base-url>
 
 require "atom/pub-server"
 require "webrick/httpserver"
@@ -19,7 +19,7 @@ module Atom
     end
 
     def gen_id key
-      key
+      "tag:#{$base_uri.host},#{Time.now.year}:/atom/#{key}"
     end
     
     def key_to_url req, key
@@ -46,18 +46,42 @@ module Atom
           feed << entry
         end
 
-        feed.entries.first.to_s
+        feed.to_s
       else
         key = url_to_key(req.request_uri.to_s)
         entry = @docs[key].to_atom_entry
         add_edit(entry, key)["href"] = key_to_url(req, key)
         entry.to_s
       end
+
+      res.content_type = "application/atom+xml"
+    end
+  end
+
+  class Introspection < WEBrick::HTTPServlet::AbstractServlet
+    def do_GET(req, res)
+      doc = REXML::Document.new
+
+      service = REXML::Element.new("service", doc)
+      service.add_namespace "http://purl.org/atom/app#"
+
+      workspace = REXML::Element.new("workspace", service)
+      workspace.attributes["title"] = "unimportant"
+
+      elem = REXML::Element.new("collection", workspace)
+      elem.attributes["href"] = $base_uri + "/atom"
+      elem.attributes["title"] = "atom-tools memory collection"
+      REXML::Element.new("member-type", elem).text = "entry"
+
+      res['Content-Type'] = "application/atomserv+xml"
+      res.body = doc.to_s
     end
   end
 end
 
-h = WEBrick::HTTPServer.new(:Port => ARGV[0])
+$base_uri = URI.parse(ARGV[0])
+
+s = WEBrick::HTTPServer.new(:Port => $base_uri.port)
 
 docs = {}
 docs.instance_variable_set :@last_key, "0"
@@ -66,6 +90,11 @@ def docs.next_key!
   @last_key.next!
 end
 
-h.mount(ARGV[1], Atom::MemoryCollection, docs)
+s.mount("/atom", Atom::MemoryCollection, docs)
+s.mount("/", Atom::Introspection)
 
-h.start
+trap("INT") do
+  s.shutdown
+end
+
+s.start
