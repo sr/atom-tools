@@ -7,7 +7,7 @@ require "webrick/httpserver"
 require "atom/feed"
 
 module Atom
-  # @docs must implement [], []=, next_id! 
+  # @docs must implement [], []=, next_id!, delete
   # including servlet must implement gen_id, url_to_key, key_to_url, do_GET
   class MemoryCollection < WEBrick::HTTPServlet::AbstractServlet
     include Atom::AtomPub
