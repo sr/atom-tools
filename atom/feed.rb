@@ -8,12 +8,10 @@ module Atom
 
     element :id, String, true
     element :title, Atom::Text, true
+    element :subtitle, Atom::Text
+   
     element :updated, Atom::Time, true
 
-    element :subtitle, Atom::Text
-
-    element :entries, Atom::Multiple(Atom::Entry)
-    
     element :links, Atom::Multiple(Atom::Link)
     element :categories, Atom::Multiple(Atom::Category)
 
@@ -25,6 +23,9 @@ module Atom
     element :logo, String
 
     element :rights, Atom::Text
+    
+    element :entries, Atom::Multiple(Atom::Entry)
+    
 
     include Enumerable
 
