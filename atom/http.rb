@@ -4,6 +4,7 @@ require 'uri'
 class Unauthorized < RuntimeError
 end
 
+# this authorization code is yet to be put to use
 # Written by Eric Hodel <drbrain@segment7.net>
 
 require 'digest/md5'
@@ -57,7 +58,7 @@ class String
 end
 
 module Atom
-  UA = "atom-tools 0.2.1"
+  UA = "atom-tools 0.2.2"
 
   class HTTP
     attr_accessor :user, :pass
