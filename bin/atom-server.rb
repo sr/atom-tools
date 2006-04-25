@@ -1,6 +1,7 @@
 #!/usr/bin/ruby
 
 # syntax: ./atom-server <base-url>
+#   eg. ./atom-server http://localhost:9999/
 
 require "atom/pub-server"
 require "webrick/httpserver"
