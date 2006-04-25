@@ -36,6 +36,11 @@ module Atom
     def to_element
       e = super
 
+      if self["type"] == "text"
+        e.attributes.delete "type"
+      end
+
+
       unless self["src"]
         c = convert_contents e
 
