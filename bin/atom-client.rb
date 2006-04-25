@@ -49,16 +49,25 @@ class Atom::Entry
 
   def filter_hook
     # so much for actual text content...
-    if @content["type"] == "text"
+    if @content and @content["type"] == "text"
       self.content = BlueCloth.new( @content.to_s ).to_html
       @content["type"] = "xhtml"
     end
   end
 
   def edit
-    entry = write_entry(self.to_yaml)
+    yaml = YAML.load(self.to_yaml)
+    
+    # humans don't care about these things
+    yaml.delete "id"
+    yaml["links"].delete(yaml["links"].find { |l| l["rel"] == "edit" })
+    yaml["links"].delete(yaml["links"].find { |l| l["rel"] == "alternate" })
+    yaml.delete("links") if yaml["links"].empty?
+
+    entry = write_entry(yaml.to_yaml)
     # the id doesn't appear in YAML, it should remain the same
     entry.id = self.id
+
     entry
   end
 end
@@ -201,7 +210,7 @@ edit = lambda do
 
   entry = coll.get_url url
 
-  res = coll.put! entry.edit
+  res = coll.put! entry.edit, url
 
   # XXX error recovery here, lost updates suck
   puts res.body
