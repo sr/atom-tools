@@ -1,5 +1,7 @@
-- xml:base, xml:lang
+- xml:lang
+- less arbitrary xml:base
 - Digest authentication
 - atom:source
 - more functional atom:feed objects
 - caching for Atom::HTTP
+- HTTP error handling
