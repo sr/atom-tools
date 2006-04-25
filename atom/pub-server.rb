@@ -28,6 +28,7 @@ module Atom
 
       res.status = 201 # Created
       res["Location"] = key_to_url(req, key)
+      res.content_type = "application/atom+xml"
       res.body = xml.to_s
     end
 
@@ -39,14 +40,17 @@ module Atom
       xml = prep_entry(doc, key)
       @docs[key] = xml
 
-      res.body = "updated document with id #{key} from #{@docs.name}"
+      res.content_type = "application/atom+xml"
+      res.body = xml.to_s
     end
 
     def do_DELETE req, res
       # XXX check that the key is valid
-      @docs.remove url_to_key(req.request_uri.to_s)
+      key = url_to_key(req.request_uri.to_s)
+      entry = @docs.delete key
 
-      res.body = "removed document with id #{key} from #{@docs.name}"
+      res.content_type = "application/atom+xml"
+      res.body = entry.to_s
     end
   end
   
