@@ -183,8 +183,8 @@ str = '<entry xmlns="http://www.w3.org/2005/Atom">
                  entry.content.to_s)
     
     # XXX unimplemented
+    assert_equal("http://diveintomark.org/", entry.content.base)
     assert_equal("en", entry.content["xml:lang"])
-    assert_equal("http://diveintomark.org", entry.content["xml:base"])
   end
 
   def assert_has_category xml, term
