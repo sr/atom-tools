@@ -35,7 +35,7 @@ module Atom
         # reject it
       end
 
-      REXML::Document.new(res.body).to_atom_entry
+      REXML::Document.new(res.body).to_atom_entry(url)
     end
   end
 

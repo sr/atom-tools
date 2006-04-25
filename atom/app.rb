@@ -67,7 +67,7 @@ module Atom
         raise RuntimeError, "you don't know where this entry has been!"
       end
 
-      URI.parse(edit_link["href"])
+      edit_link["href"]
     end
   end
 end

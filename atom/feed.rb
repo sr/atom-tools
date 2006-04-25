@@ -32,7 +32,10 @@ module Atom
       @entries = []
       @http = http
 
-      @uri = feed_uri.to_uri if feed_uri
+      if feed_uri
+        @uri = feed_uri.to_uri
+        self.base = feed_uri
+      end
 
       super "feed"
     end
@@ -92,7 +95,7 @@ module Atom
       coll = REXML::Document.new(xml)
 
       REXML::XPath.each(coll, "/atom:feed/atom:entry", { "atom" => Atom::NS } ) do |x|
-        self << x.to_atom_entry
+        self << x.to_atom_entry(self.base.to_s)
       end
       
       next_feed = REXML::XPath.first(coll, "/atom:feed/atom:link[@rel='next']/@href", { "atom" => Atom::NS } )

@@ -1,9 +1,10 @@
 require "atom/entry"
+require "uri"
 
 module REXML
   class Document
-    def to_atom_entry
-      self.root.to_atom_entry
+    def to_atom_entry base = ""
+      self.root.to_atom_entry base
     end
   end
   class Element
@@ -61,6 +62,10 @@ module REXML
           # content is the serialized content of the <content> wrapper
           entry.send( "#{name}=", text.children.to_s)
         end
+        
+        if text.attributes["xml:base"]
+          entry.send(name.to_sym).base = text.attributes["xml:base"]
+        end
 
         if type and type != "text"
           entry.send(name.to_sym)["type"] = type
@@ -69,12 +74,18 @@ module REXML
     end
 
     # REXML Stream parsing API might be more suited to the task?
-    def to_atom_entry
+    def to_atom_entry base = ""
       unless self.name == "entry" and self.namespace == Atom::NS
         raise TypeError, "this isn't an atom:entry! (name: #{self.name}, ns: #{self.namespace})"
       end
 
       entry = Atom::Entry.new
+
+      entry.base = base
+
+      if attributes["xml:base"]
+        entry.base = attributes["xml:base"]
+      end
 
       # Text constructs
       entry.class.elements.find_all { |n,k,r| k.ancestors.member? Atom::Text }.
@@ -102,7 +113,11 @@ module REXML
 
           thing.class.attrs.each do |name,req|
             value = elem.ns_attr name.to_s
-            thing[name.to_s] = value if value
+            if value and name == :href
+              thing[name.to_s] = (URI.parse(entry.base) + value).to_s
+            elsif value
+              thing[name.to_s] = value
+            end
           end
         end
       end

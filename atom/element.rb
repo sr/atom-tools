@@ -39,6 +39,7 @@ module Atom
 
   class Element < Hash
     attr_reader :extensions
+    attr_accessor :base
 
     def self.attrs; @attrs || [] end
     def self.elements; @elements || [] end
@@ -132,6 +133,10 @@ module Atom
 
       self.extensions.children.each do |element|
         elem << element.dup # otherwise they get removed from @extensions
+      end
+
+      if self.base and not self.base.empty?
+        elem.attributes["xml:base"] = self.base
       end
 
       elem
