@@ -13,17 +13,27 @@ class AtomTest < Test::Unit::TestCase
 
     entry1 = get_entry
     entry1.id = "http://example.org/test"
+    entry1.content = "an original entry"
+    entry1.update!
 
     feed << entry1
 
     assert_equal(1, feed.entries.length)
-
-    assert_block do
-      feed.has_id? "http://example.org/test"
-    end
+    assert_equal("an original entry", feed.entries.first.content.text)
 
     feed << entry1.dup
+
     assert_equal(1, feed.entries.length)
+    assert_equal("an original entry", feed.entries.first.content.text)
+
+    entry2 = entry1.dup
+    entry2.content = "a changed entry"
+    entry2.update!
+
+    feed << entry2
+
+    assert_equal(2, feed.entries.length)
+    assert_equal("a changed entry", feed.entries.last.content.text)
   end
 
   def test_tags
