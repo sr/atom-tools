@@ -21,6 +21,16 @@ module Atom
       @content.to_s
     end
 
+    def text
+      to_s
+    end
+
+    def html
+    end
+
+    def xml
+    end
+
     def inspect
       "'#{to_s}'"
     end
