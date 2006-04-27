@@ -85,18 +85,15 @@ module Atom
       feed
     end
 
-    # tests to see if this feed already has an id in it
-    def has_id? an_id
-      entries.find do |entry|
-        entry.id == an_id
-      end
-    end
-
     def parse_from(xml)
       coll = REXML::Document.new(xml)
 
-      REXML::XPath.each(coll, "/atom:feed/atom:entry", { "atom" => Atom::NS } ) do |x|
-        self << x.to_atom_entry(self.base.to_s)
+      update_time = Time.parse(REXML::XPath.first(coll, "/atom:feed/atom:updated", { "atom" => Atom::NS } ).text)
+
+      unless self.updated and not (update_time > self.updated)
+        REXML::XPath.each(coll, "/atom:feed/atom:entry", { "atom" => Atom::NS } ) do |x|
+          self << x.to_atom_entry(self.base.to_s)
+        end
       end
       
       next_feed = REXML::XPath.first(coll, "/atom:feed/atom:link[@rel='next']/@href", { "atom" => Atom::NS } )
@@ -131,8 +128,11 @@ module Atom
     end
 
     def << entry
-      # check that we're not adding duplicate entries
-      unless self.has_id? entry.id
+      existing = entries.find do |e|
+        e.id == entry.id
+      end
+
+      unless existing and not (entry.updated and existing.updated and (entry.updated > existing.updated))
         @entries << entry
       end
     end
