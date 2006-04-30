@@ -44,7 +44,14 @@ module Atom
     def taguri; nil end
     def to_yaml( opts = {} )
       YAML::quick_emit( object_id, opts ) do |out|
-        out.scalar(taguri, to_s, :quote2)
+        out.scalar(taguri, to_s, to_yaml_style)
+      end
+    end
+    def to_yaml_style
+      if @content.match("\n")
+        :fold
+      else
+        :plain
       end
     end
   end

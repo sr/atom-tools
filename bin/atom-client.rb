@@ -60,9 +60,12 @@ class Atom::Entry
     
     # humans don't care about these things
     yaml.delete "id"
-    yaml["links"].delete(yaml["links"].find { |l| l["rel"] == "edit" })
-    yaml["links"].delete(yaml["links"].find { |l| l["rel"] == "alternate" })
-    yaml.delete("links") if yaml["links"].empty?
+
+    if yaml["links"]
+      yaml["links"].delete(yaml["links"].find { |l| l["rel"] == "edit" })
+      yaml["links"].delete(yaml["links"].find { |l| l["rel"] == "alternate" })
+      yaml.delete("links") if yaml["links"].empty?
+    end
 
     entry = write_entry(yaml.to_yaml)
     # the id doesn't appear in YAML, it should remain the same
@@ -127,8 +130,8 @@ def write_entry(editstring = "")
   begin
     edited = editstring.edit_externally
 
-    if edited == "\n"
-      puts "empty content, aborted"
+    if edited == editstring
+      puts "unchanged content, aborted"
       exit
     end
 
@@ -186,7 +189,12 @@ coll = choose_collection server
 CLIENT_ID = "http://necronomicorp.com/dev/null"
 
 new = lambda do
-  entry = write_entry
+  entry = Atom::Entry.new
+  
+  entry.title = ""
+  entry.content = ""
+
+  entry = entry.edit
 
   entry.id = CLIENT_ID
   entry.published = Time.now.iso8601
