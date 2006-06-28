@@ -1,8 +1,8 @@
-# Installation #
+= Installation
 
 Move the atom directory to somewhere in your $RUBYLIB.
 
-# Basic Usage #
+= Basic Usage
   require "atom/entry"
 
   entry = Atom::Entry.new
@@ -30,7 +30,7 @@ XHTML content:
   entry.title = REXML::Document.new("<em>goodness</em> gracious")
   entry.title["type"] = "xhtml"
 
-# To and From XML #
+= To and From XML
     
     **WARNING**
 I'm waiting on the APP WG to decide whether atom:entrys are always atom:entrys, so this isn't guaranteed to give you valid output. You can call valid? on an entry, but this isn't always helpful
@@ -52,7 +52,7 @@ from:
 
   entry = REXML::Document.new("entry.xml").to_atom_entry
 
-# Extension Elements #
+= Extension Elements
 
   irt = REXML::Element.new("in-reply-to")
   irt.add_namespace "http://purl.org/syndication/thread/1.0"
@@ -61,7 +61,7 @@ from:
 
   entry.extensions << irt
 
-# YAML #
+= YAML
 
 For easy-authoring, atom-tools can now slurp an atom:entry from YAML:
 
@@ -86,9 +86,7 @@ For easy-authoring, atom-tools can now slurp an atom:entry from YAML:
 
   entry = Atom::Entry.from_yaml(yaml)
 
-# Feeds and Collections #
-
-For the time being, feeds can be read but not produced.
+= Feeds and Collections
 
   require "atom/feed"
 
@@ -104,7 +102,7 @@ Incremental feeds are supported (see mnot's feed-history draft).
   feed.entries
     => [ # the entries in the logical feed ]
 
-# Getting down with the PP #
+= Getting down with the PP
 
   require "atom/collection"
 
@@ -125,4 +123,4 @@ Special HTTP requirements (eg. authentication) can be met by passing an Atom::HT
   http.user, http.pass = "username", "password"
   collection = Atom::Collection.new("http://example.org/feed.atom", http)
 
-  # if the http object runs into a 401 Authorization Required http will respond with the giver username and password
+If the http object runs into a 401 Authorization Required http will respond with the given username and password
