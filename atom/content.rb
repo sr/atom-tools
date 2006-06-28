@@ -74,8 +74,9 @@ module Atom
 
         xhtml.root
       elsif self["type"] == "text" or self["type"].nil?
-        REXML::Text.normalize(@content)
+        REXML::Text.normalize(@content.to_s)
       elsif self["type"] == "html"
+        # XXX is this right?
         @content.to_s
       end
     end
