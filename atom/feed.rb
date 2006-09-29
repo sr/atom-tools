@@ -29,6 +29,10 @@ module Atom
 
     include Enumerable
 
+    def inspect
+      "<#{@uri} entries: #{entries.length} title='#{title}'>"
+    end
+
     def initialize feed_uri = nil, http = Atom::HTTP.new
       @entries = []
       @http = http
