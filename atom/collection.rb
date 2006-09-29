@@ -6,6 +6,8 @@ require "webrick/httputils"
 
 module Atom
   class Collection < Feed
+    attr_accessor :accepts
+
     # a collection with no uri doesn't make sense
     def initialize(uri, http = Atom::HTTP.new)
       super

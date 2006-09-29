@@ -44,14 +44,27 @@ module Atom
                                   "/app:service/app:workspace/app:collection",
                                   {"app" => Atom::PP_NS} )
       
-      @collections = {}
+      @collections = []
       
       colls.each do |collection|
-        title = collection.attributes["title"]
-
-        # to account for relative URLs
+        # absolutize relative URLs
         url = i_url + URI.parse(collection.attributes["href"])
-        @collections[title] = Atom::Collection.new(url, http)
+       
+        # XXX merge collection and mediacollection
+        coll = Atom::Collection.new(url, http)
+
+        # XXX I think this is a Text Construct now
+        coll.title = REXML::XPath.first( collection,
+                                    "./atom:title",
+                                    {"app" => Atom::PP_NS,
+                                     "atom" => Atom::NS   } ).text
+
+        accepts = REXML::XPath.first( collection,
+                                      "./app:accept",
+                                      {"app" => Atom::PP_NS} )
+        coll.accepts = (accepts ? accepts.text : "entry")
+        
+        @collections << coll
       end
     end
   end
