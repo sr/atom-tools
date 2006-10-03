@@ -101,10 +101,10 @@ def choose_collection server
   collections = []
 
   # still lame
-  server.collections.each_with_index do |pair, index|
-    collections << pair.last
+  server.collections.each_with_index do |coll, index|
+    collections << coll
 
-    puts "#{index}: #{pair.first}"
+    puts "#{index}: #{coll.title}"
   end
 
   choose_from collections
