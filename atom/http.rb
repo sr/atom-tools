@@ -1,9 +1,6 @@
 require "net/http"
 require 'uri'
 
-class Unauthorized < RuntimeError
-end
-
 # this authorization code is yet to be put to use
 # Written by Eric Hodel <drbrain@segment7.net>
 
@@ -59,9 +56,20 @@ end
 
 module Atom
   UA = "atom-tools 0.2.2"
+  class Unauthorised < RuntimeError; end
 
   class HTTP
     attr_accessor :user, :pass
+
+    def initialize
+      @get_auth_details = lambda do |abs_url, realm|
+        if @user and @pass
+          [@user, @pass]
+        else
+          nil
+        end
+      end
+    end
 
     # GETs an url
     def get url, headers = {}
@@ -83,12 +91,11 @@ module Atom
       http_request(url, Net::HTTP::Delete, body, headers)
     end
 
-    # performs an authenticated http request
-    def authenticated_request(url_string, method, www_authenticate, 
-                                user, pass, 
-                                body = nil, init_headers = {})
-      req, url = new_request(url_string, method, init_headers)
+    def when_auth &block
+      @get_auth_details = block
+    end
 
+    def parse_wwwauth www_authenticate
       auth_type = www_authenticate.split[0] # "Digest" or "Basic"
       auth_params = {}
       
@@ -96,13 +103,33 @@ module Atom
 
       $2.gsub(/(\w+)="(.*?)"/) { auth_params[$1] = $2 }
 
-      if auth_type == "Digest"
-        # TODO: implement Digest auth
-      elsif auth_type == "Basic"
+      [ auth_type, auth_params ]
+    end
+
+    # performs an authenticated http request
+    def authenticated_request(url_string, method, wwwauth, body = nil, init_headers = {})
+
+      auth_type, params = parse_wwwauth(wwwauth)
+      req, url = new_request(url_string, method, init_headers)
+      
+      realm = params["realm"]
+      abs_url = (url + "/").to_s
+
+      user, pass = @get_auth_details.call(abs_url, realm)
+    
+      raise Unauthorised unless user and pass
+      
+      if auth_type == "Basic"
         req.basic_auth user, pass
+      else
+        # TODO: implement Digest auth
+        raise "atom-tools only supports Basic authentication"
       end
       
-      Net::HTTP.start(url.host, url.port) { |h| h.request(req, body) }
+      res = Net::HTTP.start(url.host, url.port) { |h| h.request(req, body) }
+      
+      raise Unauthorised if res.kind_of? Net::HTTPUnauthorized
+      res
     end
 
     # performs a regular http request. if it responds 401 
@@ -113,11 +140,7 @@ module Atom
       res = Net::HTTP.start(url.host, url.port) { |h| h.request(req, body) }
 
       if res.kind_of? Net::HTTPUnauthorized
-        raise Unauthorized unless @user and @pass
-
-        res = authenticated_request(url, method, res["WWW-Authenticate"], 
-                                @user, @pass, 
-                                body, init_headers)
+        res = authenticated_request(url, method, res["WWW-Authenticate"], body, init_headers)
       end
 
       res
