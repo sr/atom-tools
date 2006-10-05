@@ -1,13 +1,14 @@
 require "atom/app.rb"
-require "ostruct"
 
 class FakeHTTP
+  Response = Struct.new(:body, :code, :content_type)
+
   def initialize table, mime_type
     @table = table
     @mime_type = mime_type
   end
   def get url
-    res = OpenStruct.new
+    res = Response.new
     res.body = @table[url.to_s]
     res.code = 200.to_s
     res.content_type = @mime_type
