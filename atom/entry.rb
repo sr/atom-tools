@@ -94,14 +94,5 @@ module Atom
 
       true
     end
-
-    # backwards compatibility
-    def a_id
-      @id
-    end
-
-    def a_id= it
-      @id = it 
-    end
   end
 end
