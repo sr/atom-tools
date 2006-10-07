@@ -42,11 +42,12 @@ module Atom
 
       @http.put(url, data, headers)
     end
-    
+  end
+
+  class HTTP
     # get a URL, turn it into an Atom::Entry
-    #  (eg. for fetching an Entry for editing (?) )
-    def get_url(url)
-      res = @http.get(url)
+    def get_atom_entry(url)
+      res = get(url)
 
       if res.code != "200" or res.content_type != "application/atom+xml"
         # XXX reject it
