@@ -7,7 +7,7 @@ end
 module Atom 
   class Text < Atom::Element
     attrb :type
-    attrb :src
+    attrb :src # XXX ?
 
     def initialize value, name
       @content = value
@@ -36,8 +36,18 @@ module Atom
     end
 
     def []= key, value
-      if key == "type" and not valid_type? value
-        raise RuntimeError, "atomTextConstruct type '#{value}' is meaningless"
+      if key == "type"
+        unless valid_type? value
+          raise "atomTextConstruct type '#{value}' is meaningless"
+        end
+
+        if value == "xhtml"
+          begin
+            @content = parse_xhtml
+          rescue REXML::ParseException
+            raise "#{@content.inspect} can't be parsed as XML"
+          end
+        end
       end
 
       super(key, value)
@@ -57,7 +67,7 @@ module Atom
         if c.is_a? String
           e.text = c
         elsif c.is_a? REXML::Element
-          e << c
+          e << c.dup
         else
           raise RuntimeError, "atom:#{local_name} can't contain type #{@content.class}"
         end
@@ -69,20 +79,40 @@ module Atom
     private
     def convert_contents e
       if self["type"] == "xhtml"
-        xhtml = REXML::Document.new("<div>#{@content}</div>")
-        xhtml.root.add_namespace(XHTML::NS)
-
-        xhtml.root
+        @content
       elsif self["type"] == "text" or self["type"].nil?
         REXML::Text.normalize(@content.to_s)
       elsif self["type"] == "html"
-        # XXX is this right?
         @content.to_s
       end
     end
     
     def valid_type? type
       ["text", "xhtml", "html"].member? type
+    end
+
+    def parse_xhtml xhtml = nil
+      xhtml ||= @content
+
+      if xhtml.is_a? REXML::Element
+        if xhtml.name == "div" and xhtml.namespace == XHTML::NS
+          xhtml.dup
+        else
+          elem = REXML::Element.new("div")
+          elem.add_namespace(XHTML::NS)
+
+          elem << xhtml.dup
+
+          elem
+        end
+      elsif xhtml.is_a? REXML::Document
+        parse_xhtml xhtml.root
+      else
+        div = REXML::Document.new("<div>#{@content}</div>")
+        div.root.add_namespace(XHTML::NS)
+
+        div.root
+      end
     end
   end
 

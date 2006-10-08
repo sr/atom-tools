@@ -52,12 +52,17 @@ module REXML
         src = text.ns_attr("src")
 
         if src                          # XXX ignore src= outside of <content/>
-          # content is out-of-line
-          entry.send( "#{name}=".to_sym, "a")     # XXX this is really dumb
+          # the only content is out of line
+          entry.send( "#{name}=".to_sym, "")
           entry.send(name.to_sym)["src"] = src
         elsif type == "xhtml"
+          div = XPath.first(text, "./xhtml:div", { "xhtml" => XHTML::NS })
+          unless div
+            raise "Refusing to parse type='xhtml' with no <div/> wrapper"
+          end
+
           # content is the serialized content of the <div> wrapper
-          entry.send( "#{name}=".to_sym, text.elements[1].children.to_s )
+          entry.send( "#{name}=".to_sym, div )
         else
           # content is the serialized content of the <content> wrapper
           entry.send( "#{name}=", text.children.to_s)
