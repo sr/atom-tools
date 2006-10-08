@@ -84,7 +84,7 @@ content: not much here\
 
   def get_elements entry
     xml = entry.to_xml
- 
+
     assert_equal(entry.to_s, xml.to_atom_entry.to_s) 
     
     base_check xml

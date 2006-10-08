@@ -30,25 +30,15 @@ class AtomTest < Test::Unit::TestCase
   def test_text_type_xhtml
     entry = get_entry
 
-    entry.title = REXML::Document.new("Atom-drunk pirates <em>run amok</em>!")
+    entry.title = "Atom-drunk pirates <em>run amok</em>!"
     entry.title["type"] = "xhtml"
 
     xml = get_elements entry
+    
+    base_check xml
 
     assert_equal(XHTML::NS, xml.elements["/entry/title/div"].namespace)
     assert_equal("run amok", xml.elements["/entry/title/div/em"].text)
-  end
-
-  def test_text_malformed_xhtml
-    entry = get_entry
-
-    entry.title = "A malformed title & more!"
-    entry.title["type"] = "xhtml"
-
-    # things are only parsed when it's to be serialized
-    assert_raises(REXML::ParseException) do
-      entry.to_s
-    end
   end
 
   def test_author
