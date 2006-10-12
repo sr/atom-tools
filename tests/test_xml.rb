@@ -172,9 +172,17 @@ str = '<entry xmlns="http://www.w3.org/2005/Atom">
     assert_match("<p><i>[Update: The Atom draft is finished.]</i></p>", 
                  entry.content.to_s)
     
-    # XXX unimplemented
     assert_equal("http://diveintomark.org/", entry.content.base)
+    # XXX unimplemented
 #    assert_equal("en", entry.content.lang)
+  end
+
+  def test_relative_base
+    base_url = "http://www.tbray.org/ongoing/ongoing.atom"
+    doc = "<entry xmlns='http://www.w3.org/2005/Atom' xml:base='When/200x/2006/10/11/'/>"
+    
+    entry = REXML::Document.new(doc).to_atom_entry base_url
+    assert_equal("http://www.tbray.org/ongoing/When/200x/2006/10/11/", entry.base)
   end
 
   def assert_has_category xml, term

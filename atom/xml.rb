@@ -86,10 +86,11 @@ module REXML
 
       entry = Atom::Entry.new
 
-      entry.base = base
-
-      if attributes["xml:base"]
-        entry.base = attributes["xml:base"]
+      entry.base = if attributes["xml:base"]
+        (URI.parse(base) + attributes["xml:base"]).to_s
+      else
+        # go with the URL we were passed in
+        base
       end
 
       # Text constructs
