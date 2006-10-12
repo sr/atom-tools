@@ -6,7 +6,7 @@ require "atom/http"
 
 module Atom
   class Feed < Atom::Element
-    attr_reader :uri, :prev, :next
+    attr_reader :uri, :prev, :next, :etag, :last_modified
 
     element :id, String, true
     element :title, Atom::Text, true
@@ -60,7 +60,7 @@ module Atom
       while prev
         prev.update!
 
-        self.merge! prev
+        self.merge_entries! prev
         prev = prev.prev
       end
 
@@ -68,19 +68,34 @@ module Atom
       while nxt
         nxt.update!
 
-        self.merge! nxt
+        self.merge_entries! nxt
         nxt = nxt.next
       end
 
       self
     end
 
-    def merge! other_feed
-      # I suppose I could do more than just add entries here.
+    # copies entries from another feed
+    def merge_entries! other_feed
       other_feed.each do |entry|
         # TODO: add atom:source elements
         self << entry
       end
+    end
+
+    # merges important properties of another feed into this one
+    def merge! other_feed
+      [:id, :title, :subtitle, :updated, :rights].each { |p|
+        self.send("#{p}=", other_feed.send("#{p}"))
+      }
+
+      [:links, :categories, :authors, :contributors].each do |p|
+        other_feed.send("#{p}").each do |e|
+          self.send("#{p}") << e
+        end
+      end
+
+      merge_entries! other_feed
     end
 
     # merges this feed with another, returning a new feed
@@ -94,14 +109,24 @@ module Atom
 
     def update!
       raise(RuntimeError, "can't fetch without a uri.") unless @uri
-      
-      res = @http.get(@uri)
+     
+      headers = {}
+      headers["If-None-Match"] = @etag if @etag
+      headers["If-Modified-Since"] = @last_modified if @last_modified
 
-      if res.code != "200"
-        raise RuntimeError, "Unexpected HTTP response code: #{res.code}"
+      res = @http.get(@uri, headers)
+
+      if res.code == "304"
+        # we're already all up to date
+        return self
+      elsif res.code != "200"
+        raise "Unexpected HTTP response code: #{res.code}"
       elsif not res.content_type.match(/^application\/atom\+xml/)
-        raise RuntimeError, "Unexpected HTTP response Content-Type: #{res.content_type}"
+        raise "Unexpected HTTP response Content-Type: #{res.content_type} (wanted application/atom+xml)"
       end
+
+      @etag = res["Etag"] if res["Etag"]
+      @last_modified = res["Last-Modified"] if res["Last-Modified"]
 
       xml = res.body
 
