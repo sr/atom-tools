@@ -1,4 +1,5 @@
 require "atom/entry"
+require "atom/feed"
 require "uri"
 
 module REXML
@@ -6,16 +7,19 @@ module REXML
     def to_atom_entry base = ""
       self.root.to_atom_entry base
     end
+    def to_atom_feed base = ""
+      self.root.to_atom_feed base
+    end
   end
   class Element
-    # get the first element matching './/atom:<name>'
     def get_atom_element name
-      XPath.first(self, ".//atom:#{name}", { "atom" => Atom::NS })
+      XPath.first(self, "./atom:#{name}", { "atom" => Atom::NS })
     end
     
-    # get an array of elements matching './/atom:<name>'
-    def get_atom_elements name
-      XPath.match(self, ".//atom:#{name}", { "atom" => Atom::NS })
+    def each_atom_element name
+      XPath.each(self, "./atom:#{name}", { "atom" => Atom::NS }) do |elem|
+        yield elem
+      end
     end
    
     def get_extensions
@@ -65,7 +69,8 @@ module REXML
           entry.send( "#{name}=".to_sym, div )
         else
           # content is the serialized content of the <content> wrapper
-          entry.send( "#{name}=", text.children.to_s)
+          raw = REXML::Text.read_with_substitution(text.children.to_s)
+          entry.send( "#{name}=", raw )
         end
         
         if text.attributes["xml:base"]
@@ -78,7 +83,31 @@ module REXML
       end
     end
 
-    # REXML Stream parsing API might be more suited to the task?
+    def fill_elem_element(top, kind)
+      each_atom_element(kind) do |elem|
+        person = top.send("#{kind}s".to_sym).new
+     
+        ["name", "uri", "email"].each do |name|
+          person.send("#{name}=".to_sym, elem.get_atom_text(name))
+        end
+      end
+    end
+
+    def fill_attr_element(top, array, kind)
+      each_atom_element(kind) do |elem|
+        thing = array.new
+
+        thing.class.attrs.each do |name,req|
+          value = elem.ns_attr name.to_s
+          if value and name == :href
+            thing[name.to_s] = (URI.parse(top.base) + value).to_s
+          elsif value
+            thing[name.to_s] = value
+          end
+        end
+      end
+    end
+
     def to_atom_entry base = ""
       unless self.name == "entry" and self.namespace == Atom::NS
         raise TypeError, "this isn't an atom:entry! (name: #{self.name}, ns: #{self.namespace})"
@@ -94,9 +123,8 @@ module REXML
       end
 
       # Text constructs
-      entry.class.elements.find_all { |n,k,r| k.ancestors.member? Atom::Text }.
-        each do |n,k,r|
-          fill_text_construct(entry, n)
+      entry.class.elements.find_all { |n,k,r| k.ancestors.member? Atom::Text }.each do |n,k,r|
+        fill_text_construct(entry, n)
       end
 
       ["id", "published", "updated"].each do |name|
@@ -104,28 +132,11 @@ module REXML
       end
 
       ["author", "contributor"].each do |type|
-        get_atom_elements(type).each do |elem|
-          person = entry.send("#{type}s".to_sym).new
-       
-          ["name", "uri", "email"].each do |name|
-            person.send("#{name}=".to_sym, elem.get_atom_text(name))
-          end
-        end
+        fill_elem_element(entry, type)
       end
 
       {"link" => entry.links, "category" => entry.categories}.each do |k,v|
-        get_atom_elements(k).each do |elem|
-          thing = v.new
-
-          thing.class.attrs.each do |name,req|
-            value = elem.ns_attr name.to_s
-            if value and name == :href
-              thing[name.to_s] = (URI.parse(entry.base) + value).to_s
-            elsif value
-              thing[name.to_s] = value
-            end
-          end
-        end
+        fill_attr_element(entry, v, k)
       end
       
       # extension elements
@@ -134,6 +145,49 @@ module REXML
       end
 
       entry
+    end
+
+    def to_atom_feed base = ""
+      unless self.name == "feed" and self.namespace == Atom::NS
+        raise TypeError, "this isn't an atom:feed! (name: #{self.name}, ns: #{self.namespace})"
+      end
+
+      feed = Atom::Feed.new
+      
+      feed.base = if attributes["xml:base"]
+        (URI.parse(base) + attributes["xml:base"]).to_s
+      else
+        # go with the URL we were passed in
+        base
+      end
+      
+      # Text constructs
+      feed.class.elements.find_all { |n,k,r| k.ancestors.member? Atom::Text }.each do |n,k,r|
+        fill_text_construct(feed, n)
+      end
+
+      ["id", "updated", "generator", "icon", "logo"].each do |name|
+        feed.send("#{name}=".to_sym, get_atom_text(name))
+      end
+
+      ["author", "contributor"].each do |type|
+        fill_elem_element(feed, type)
+      end
+
+      {"link" => feed.links, "category" => feed.categories}.each do |k,v|
+        fill_attr_element(feed, v, k)
+      end
+     
+      each_atom_element("entry") do |elem|
+        feed << elem.to_atom_entry(feed.base)
+      end
+
+      get_extensions.each do |elem|
+        # have to duplicate them, or they'll get removed from the doc
+        feed.extensions << elem.dup
+      end
+
+      feed
     end
   end
 end

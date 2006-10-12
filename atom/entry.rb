@@ -1,6 +1,5 @@
 require "rexml/document"
 
-require "atom/xml"
 require "atom/element"
 require "atom/content"
 
@@ -96,3 +95,6 @@ module Atom
     end
   end
 end
+
+# this is here solely so that you don't have to require it
+require "atom/xml"

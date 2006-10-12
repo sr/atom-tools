@@ -1,7 +1,6 @@
 require "test/unit"
 
 require "atom/entry"
-require "atom/xml"
 
 class AtomTest < Test::Unit::TestCase
   def test_text_type_text
@@ -111,7 +110,7 @@ class AtomTest < Test::Unit::TestCase
     assert_equal("http://purl.org/", xml.elements["/entry/test"].namespace)
   end
 
-  def test_extensive_parsing
+  def test_extensive_enty_parsing
 str = '<entry xmlns="http://www.w3.org/2005/Atom">
   <title>Atom draft-07 snapshot</title>
   <link rel="alternate" type="text/html"
@@ -175,6 +174,73 @@ str = '<entry xmlns="http://www.w3.org/2005/Atom">
     assert_equal("http://diveintomark.org/", entry.content.base)
     # XXX unimplemented
 #    assert_equal("en", entry.content.lang)
+  end
+
+  def test_extensive_feed_parsing
+feed = <<END
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title type="text">dive into mark</title>
+  <subtitle type="html">
+    A &lt;em&gt;lot&lt;/em&gt; of effort
+    went into making this effortless
+  </subtitle>
+  <updated>2005-07-31T12:29:29Z</updated>
+  <id>tag:example.org,2003:3</id>
+  <link rel="alternate" type="text/html"
+   hreflang="en" href="http://example.org/"/>
+  <link rel="self" type="application/atom+xml"
+   href="http://example.org/feed.atom"/>
+  <rights>Copyright (c) 2003, Mark Pilgrim</rights>
+  <generator uri="http://www.example.com/" version="1.0">
+    Example Toolkit
+  </generator>
+  <entry>
+    <title>Atom draft-07 snapshot</title>
+    <author>
+      <name>Mark Pilgrim</name>
+      <uri>http://example.org/</uri>
+      <email>f8dy@example.com</email>
+    </author>
+    <link rel="alternate" type="text/html"
+     href="http://example.org/2005/04/02/atom"/>
+    <id>tag:example.org,2003:3.2397</id>
+    <updated>2005-07-31T12:29:29Z</updated>
+  </entry>
+</feed>
+END
+
+    feed = REXML::Document.new(feed).to_atom_feed
+
+    assert_equal("", feed.base)
+
+    assert_equal("text", feed.title["type"])
+    assert_equal("dive into mark", feed.title.to_s)
+
+    assert_equal("html", feed.subtitle["type"])
+    assert_equal("\n    A <em>lot</em> of effort\n    went into making this effortless\n  ", feed.subtitle.to_s)
+
+    assert_equal(Time.parse("2005-07-31T12:29:29Z"), feed.updated)
+    assert_equal("tag:example.org,2003:3", feed.id)
+
+    assert_equal([], feed.authors)
+    
+    alt = feed.links.find { |l| l["rel"] == "alternate" }
+    assert_equal("alternate", alt["rel"])
+    assert_equal("text/html", alt["type"])
+    assert_equal("en", alt["hreflang"])
+    assert_equal("http://example.org/", alt["href"])
+
+    assert_equal("text", feed.rights["type"])
+    assert_equal("Copyright (c) 2003, Mark Pilgrim", feed.rights.to_s)
+
+    assert_equal("\n    Example Toolkit\n  ", feed.generator)
+    # XXX unimplemented
+    # assert_equal("http://www.example.com/", feed.generator["uri"])
+    # assert_equal("1.0", feed.generator["version"])
+   
+    assert_equal(1, feed.entries.length)
+    assert_equal "Atom draft-07 snapshot", feed.entries.first.title.to_s
   end
 
   def test_relative_base

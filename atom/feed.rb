@@ -1,5 +1,7 @@
-require "atom/entry"
 require "atom/element"
+require "atom/content"
+require "atom/entry"
+
 require "atom/http"
 
 module Atom
@@ -18,7 +20,7 @@ module Atom
     element :authors, Atom::Multiple(Atom::Author)
     element :contributors, Atom::Multiple(Atom::Contributor)
 
-    element :generator, String # uri and version attributes
+    element :generator, String # XXX with uri and version attributes!
     element :icon, String
     element :logo, String
 
@@ -74,6 +76,7 @@ module Atom
     end
 
     def merge! other_feed
+      # I suppose I could do more than just add entries here.
       other_feed.each do |entry|
         # TODO: add atom:source elements
         self << entry
@@ -89,34 +92,6 @@ module Atom
       feed
     end
 
-    def parse_from(xml)
-      coll = REXML::Document.new(xml)
-
-      update_time = Time.parse(REXML::XPath.first(coll, "/atom:feed/atom:updated", { "atom" => Atom::NS } ).text)
-
-      unless self.updated and not (update_time > self.updated)
-        REXML::XPath.each(coll, "/atom:feed/atom:entry", { "atom" => Atom::NS } ) do |x|
-          self << x.to_atom_entry(self.base.to_s)
-        end
-      end
-      
-      next_feed = REXML::XPath.first(coll, "/atom:feed/atom:link[@rel='next']/@href", { "atom" => Atom::NS } )
-
-      if next_feed
-        abs_uri = @uri + next_feed.to_s
-        @next = Feed.new(abs_uri.to_s, @http)
-      end
-
-      prev_feed = REXML::XPath.first(coll, "/atom:feed/atom:link[@rel='previous']/@href", { "atom" => Atom::NS } )
-
-      if prev_feed
-        abs_uri = @uri + prev_feed.to_s
-        @prev = Feed.new(abs_uri.to_s, @http)
-      end
-
-      self
-    end
-
     def update!
       raise(RuntimeError, "can't fetch without a uri.") unless @uri
       
@@ -128,7 +103,33 @@ module Atom
         raise RuntimeError, "Unexpected HTTP response Content-Type: #{res.content_type}"
       end
 
-      parse_from(res.body)
+      xml = res.body
+
+      coll = REXML::Document.new(xml)
+
+      update_time = Time.parse(REXML::XPath.first(coll, "/atom:feed/atom:updated", { "atom" => Atom::NS } ).text)
+
+      # the feed hasn't been updated, don't bother
+      if self.updated and self.updated >= update_time
+        return self
+      end
+
+      coll = coll.to_atom_feed(self.base.to_s)
+      merge! coll
+     
+      link = coll.links.find { |l| l["rel"] = "next" and l["type"] == "application/atom+xml" }
+      if link
+        abs_uri = @uri + link["href"]
+        @next = Feed.new(abs_uri.to_s, @http)
+      end
+
+      link = coll.links.find { |l| l["rel"] = "previous" and l["type"] == "application/atom+xml" } 
+      if link
+        abs_uri = @uri + link["href"]
+        @prev = Feed.new(abs_uri.to_s, @http)
+      end
+
+      self
     end
 
     def << entry
@@ -142,3 +143,6 @@ module Atom
     end
   end
 end
+
+# this is here solely so you don't have to require it
+require "atom/xml"
