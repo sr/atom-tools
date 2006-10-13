@@ -19,12 +19,12 @@ class AtomTest < Test::Unit::TestCase
     feed << entry1
 
     assert_equal(1, feed.entries.length)
-    assert_equal("an original entry", feed.entries.first.content.text)
+    assert_equal("an original entry", feed.entries.first.content.to_s)
 
     feed << entry1.dup
 
     assert_equal(1, feed.entries.length)
-    assert_equal("an original entry", feed.entries.first.content.text)
+    assert_equal("an original entry", feed.entries.first.content.to_s)
 
     entry2 = entry1.dup
     entry2.content = "a changed entry"
@@ -32,8 +32,8 @@ class AtomTest < Test::Unit::TestCase
 
     feed << entry2
 
-    assert_equal(2, feed.entries.length)
-    assert_equal("a changed entry", feed.entries.last.content.text)
+    assert_equal(1, feed.entries.length)
+    assert_equal("a changed entry", feed.entries.last.content.to_s)
   end
 
   def test_tags

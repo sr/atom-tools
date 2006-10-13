@@ -5,6 +5,9 @@ require "atom/entry"
 require "atom/http"
 
 module Atom
+  class HTTPException < RuntimeError; end
+  class FeedGone < RuntimeError; end
+
   class Feed < Atom::Element
     attr_reader :uri, :prev, :next, :etag, :last_modified
 
@@ -119,10 +122,14 @@ module Atom
       if res.code == "304"
         # we're already all up to date
         return self
+      elsif res.code == "410"
+        raise Atom::FeedGone, "410 Gone (#{@uri})"
       elsif res.code != "200"
-        raise "Unexpected HTTP response code: #{res.code}"
-      elsif not res.content_type.match(/^application\/atom\+xml/)
-        raise "Unexpected HTTP response Content-Type: #{res.content_type} (wanted application/atom+xml)"
+        raise Atom::HTTPException, "Unexpected HTTP response code: #{res.code}"
+      end
+        
+      unless res.content_type.match(/^application\/atom\+xml/)
+        raise Atom::HTTPException, "Unexpected HTTP response Content-Type: #{res.content_type} (wanted application/atom+xml)"
       end
 
       @etag = res["Etag"] if res["Etag"]
@@ -162,8 +169,10 @@ module Atom
         e.id == entry.id
       end
 
-      unless existing and not (entry.updated and existing.updated and (entry.updated > existing.updated))
+      if not existing
         @entries << entry
+      elsif not existing.updated or (existing.updated and entry.updated and entry.updated >= existing.updated)
+        @entries[@entries.index(existing)] = entry
       end
     end
   end
