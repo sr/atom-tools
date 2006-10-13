@@ -18,21 +18,19 @@ module Atom
     end
 
     def to_s
-      @content.to_s
+      if self["type"] == "xhtml" 
+        @content.children.to_s
+      else
+        @content.to_s
+      end
     end
 
-    def text
-      to_s
-    end
-
-    def html
-    end
-
-    def xml
-    end
+    def text; to_s end
+    def html; end
+    def xml; end
 
     def inspect
-      "'#{to_s}'"
+      "'#{to_s}'##{self['type']}"
     end
 
     def []= key, value
@@ -43,7 +41,7 @@ module Atom
 
         if value == "xhtml"
           begin
-            @content = parse_xhtml
+            parse_xhtml_content
           rescue REXML::ParseException
             raise "#{@content.inspect} can't be parsed as XML"
           end
@@ -91,10 +89,10 @@ module Atom
       ["text", "xhtml", "html"].member? type
     end
 
-    def parse_xhtml xhtml = nil
+    def parse_xhtml_content xhtml = nil
       xhtml ||= @content
 
-      if xhtml.is_a? REXML::Element
+      @content = if xhtml.is_a? REXML::Element
         if xhtml.name == "div" and xhtml.namespace == XHTML::NS
           xhtml.dup
         else
@@ -106,7 +104,7 @@ module Atom
           elem
         end
       elsif xhtml.is_a? REXML::Document
-        parse_xhtml xhtml.root
+        parse_xhtml_content xhtml.root
       else
         div = REXML::Document.new("<div>#{@content}</div>")
         div.root.add_namespace(XHTML::NS)

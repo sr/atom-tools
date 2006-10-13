@@ -1,3 +1,4 @@
+require "test/unit"
 require "atom/entry"
 
 class ConstructTest < Test::Unit::TestCase
@@ -27,6 +28,11 @@ class ConstructTest < Test::Unit::TestCase
     assert_raises(RuntimeError) do
       entry.title["type"] = "application/xhtml+xml"
     end
+
+    entry.title = REXML::Document.new("<div xmlns='http://www.w3.org/1999/xhtml'>foo</div>").root
+    entry.title["type"] = "xhtml"
+
+    assert_equal "foo", entry.title.to_s
   end
 
   def test_content
