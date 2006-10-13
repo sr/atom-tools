@@ -10,7 +10,7 @@ module Atom
 
     # this tiny little thing is here to require a URI
     def initialize(uri, http = Atom::HTTP.new)
-      super
+      super uri, http
     end
 
     def post!(entry, slug = nil)
@@ -50,7 +50,7 @@ module Atom
       res = get(url)
 
       if res.code != "200" or res.content_type != "application/atom+xml"
-        # XXX reject it
+        raise Atom::HTTPException, "expected Atom::Entry, didn't get it"
       end
 
       REXML::Document.new(res.body).to_atom_entry(url)

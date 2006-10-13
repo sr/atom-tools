@@ -1,3 +1,5 @@
+require "test/unit"
+
 require "atom/app.rb"
 
 class FakeHTTP
@@ -51,5 +53,11 @@ END
     assert_equal("image/*", coll.accepts)
 
     # XXX write a test for relative hrefs
+  end
+
+  def test_dont_specify_http_object
+    collection = Atom::Collection.new("http://necronomicorp.com/testatom?atom")
+
+    assert_instance_of Atom::HTTP, collection.instance_variable_get("@http")
   end
 end
