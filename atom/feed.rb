@@ -30,7 +30,6 @@ module Atom
     element :rights, Atom::Text
     
     element :entries, Atom::Multiple(Atom::Entry)
-    
 
     include Enumerable
 

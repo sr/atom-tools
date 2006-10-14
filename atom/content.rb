@@ -7,7 +7,6 @@ end
 module Atom 
   class Text < Atom::Element
     attrb :type
-    attrb :src # XXX ?
 
     def initialize value, name
       @content = value
@@ -25,7 +24,7 @@ module Atom
       end
     end
 
-    # XXX don't use this
+    # XXX don't use this (yet)
     def text; to_s end
 
     # returns a string suitable for dumping into an HTML document
@@ -38,9 +37,15 @@ module Atom
       end
     end
 
-    # UNIMPLEMENTED
-    # attepts to parse the content and return it as REXML::Elements
-    def xml; end
+    # attepts to parse the content and return it an array of REXML::Elements
+    def xml
+      if self["type"] == "xhtml"
+        @content.children
+      else
+        # UNIMPLEMENTED
+        raise "I haven't implemented this yet"
+      end
+    end
 
     def inspect
       "'#{to_s}'##{self['type']}"
@@ -71,8 +76,8 @@ module Atom
         e.attributes.delete "type"
       end
 
-
-      unless self["src"]
+      # this should be done via inheritance
+      unless self.class == Atom::Content and self["src"]
         c = convert_contents e
 
         if c.is_a? String
@@ -128,7 +133,6 @@ module Atom
   end
 
   class Content < Atom::Text
-    attrb :type
     attrb :src
 
     private

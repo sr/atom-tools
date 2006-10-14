@@ -48,6 +48,15 @@ module Atom
       @elements.find { |name,kind,req| req }
     end
 
+    def self.inherited klass
+      elements.each do |name, kind, req|
+        klass.element name, kind, req
+      end
+      attrs.each do |name, req|
+        klass.attrb name, req
+      end
+    end
+
     def self.element(name, kind, req = false)
       attr_reader name
 

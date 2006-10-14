@@ -1,6 +1,6 @@
 require "test/unit"
 
-require "atom/app.rb"
+require "atom/app"
 
 class FakeHTTP
   Response = Struct.new(:body, :code, :content_type)
@@ -59,5 +59,11 @@ END
     collection = Atom::Collection.new("http://necronomicorp.com/testatom?atom")
 
     assert_instance_of Atom::HTTP, collection.instance_variable_get("@http")
+  end
+
+  def test_collection_properly_inherits_feed
+    collection = Atom::Collection.new("http://necronomicorp.com/testatom?atom")
+
+    assert_equal [], collection.links
   end
 end
