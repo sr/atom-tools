@@ -25,8 +25,21 @@ module Atom
       end
     end
 
+    # XXX don't use this
     def text; to_s end
-    def html; end
+
+    # returns a string suitable for dumping into an HTML document
+    #  (you should probably filter out certain tags, though)
+    def html
+      if self["type"] == "xhtml"
+        to_s
+      elsif self["type"] == "html" or self["type"] == "text"
+        REXML::Text.new(to_s).to_s
+      end
+    end
+
+    # UNIMPLEMENTED
+    # attepts to parse the content and return it as REXML::Elements
     def xml; end
 
     def inspect

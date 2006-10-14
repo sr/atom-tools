@@ -11,6 +11,7 @@ class ConstructTest < Test::Unit::TestCase
     entry.title = "<3"
     assert_equal "text", entry.title["type"]
     assert_equal "<3", entry.title.to_s
+    assert_equal "&lt;3", entry.title.html
 
     title = entry.to_xml.root.children.first
     assert_equal "<3", title.text
@@ -18,6 +19,7 @@ class ConstructTest < Test::Unit::TestCase
     entry.title["type"] = "html"
     assert_equal "html", entry.title["type"]
     assert_equal "<3", entry.title.to_s
+    assert_equal "&lt;3", entry.title.html
     
     title = entry.to_xml.root.children.first
     assert_equal "<3", title.text
@@ -29,10 +31,11 @@ class ConstructTest < Test::Unit::TestCase
       entry.title["type"] = "application/xhtml+xml"
     end
 
-    entry.title = REXML::Document.new("<div xmlns='http://www.w3.org/1999/xhtml'>foo</div>").root
+    entry.title = REXML::Document.new("<div xmlns='http://www.w3.org/1999/xhtml'>&lt;3</div>").root
     entry.title["type"] = "xhtml"
 
-    assert_equal "foo", entry.title.to_s
+    assert_equal "&lt;3", entry.title.to_s
+    assert_equal "&lt;3", entry.title.html
   end
 
   def test_content

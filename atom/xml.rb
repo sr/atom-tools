@@ -68,8 +68,7 @@ module REXML
           # content is the serialized content of the <div> wrapper
           entry.send( "#{name}=".to_sym, div )
         else
-          # content is the serialized content of the <content> wrapper
-          raw = REXML::Text.read_with_substitution(text.children.to_s)
+          raw = text.text
           entry.send( "#{name}=", raw )
         end
         
