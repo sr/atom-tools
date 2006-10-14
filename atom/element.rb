@@ -186,6 +186,13 @@ module Atom
     attrb :hreflang
     attrb :title
     attrb :length
+
+    def initialize name = nil
+      super name
+
+      # just setting a default
+      self["rel"] = "alternate"
+    end
   end
   
   class Category < Atom::AttrEl

@@ -17,7 +17,7 @@ require "atom/feed"
 # (eg. they *could* return &lt; or &#60; and still be perfectly correct)
 #
 # It shouldn't be a problem unless REXML changes what it encodes.
-class TitleConformanceUpdated < Test::Unit::TestCase
+class TestTitleConformance < Test::Unit::TestCase
   def test_html_cdata
     url = "http://atomtests.philringnalda.com/tests/item/title/html-cdata.atom"
 
