@@ -216,7 +216,7 @@ edit = lambda do
 
   url = entry.edit_url
 
-  entry = coll.get_url url
+  entry = http.get_atom_entry url
 
   res = coll.put! entry.edit, url
 
