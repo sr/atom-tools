@@ -14,6 +14,7 @@ module Atom
     end
 
     def post!(entry, slug = nil)
+      raise "Cowardly refusing to POST a non-Atom::Entry" unless entry.is_a? Atom::Entry
       headers = {"Content-Type" => "application/atom+xml" }
       headers["Slug"] = slug if slug
       
@@ -21,6 +22,7 @@ module Atom
     end
    
     def put!(entry, url = entry.edit_url)
+      raise "Cowardly refusing to PUT a non-Atom::Entry" unless entry.is_a? Atom::Entry
       headers = {"Content-Type" => "application/atom+xml" }
       
       @http.put(url, entry.to_s, headers)
