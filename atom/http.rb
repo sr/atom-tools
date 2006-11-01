@@ -55,7 +55,7 @@ class String
 end
 
 module Atom
-  UA = "atom-tools 0.2.2"
+  UA = "atom-tools 0.9.0"
   class Unauthorised < RuntimeError; end
 
   class HTTP

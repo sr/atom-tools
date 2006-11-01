@@ -72,15 +72,15 @@ module Atom
   # Entry convenience functions
   class Entry
     def edit_url
-      edit_link = self.links.find do |link|
-        link["rel"] == "edit"
-      end
+      begin
+        edit_link = self.links.find do |link|
+          link["rel"] == "edit"
+        end
 
-      unless edit_link["href"]
-        raise RuntimeError, "you don't know where this entry has been!"
+        edit_link["href"]
+      rescue
+        nil
       end
-
-      edit_link["href"]
     end
   end
 end
