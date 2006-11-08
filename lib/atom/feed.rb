@@ -1,5 +1,5 @@
 require "atom/element"
-require "atom/content"
+require "atom/text"
 require "atom/entry"
 
 require "atom/http"

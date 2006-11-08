@@ -1,7 +1,7 @@
 require "rexml/document"
 
 require "atom/element"
-require "atom/content"
+require "atom/text"
 
 module Atom
   NS = "http://www.w3.org/2005/Atom"
