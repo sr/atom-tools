@@ -4,9 +4,13 @@ require "rexml/element"
 module Atom
   class Time < ::Time
     def self.new date
-      return if date.nil? # so we can blindly copy from the XML
+      return if date.nil?
 
-      date = if date.respond_to?(:iso8601); date else Time.parse date; end
+      date = if date.respond_to?(:iso8601)
+        date
+      else
+        Time.parse date.to_s
+      end
         
       def date.to_s
         iso8601

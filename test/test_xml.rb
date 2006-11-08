@@ -1,6 +1,7 @@
 require "test/unit"
 
-require "atom/entry"
+# for entry.edit_url
+require "atom/app"
 
 class AtomTest < Test::Unit::TestCase
   def test_text_type_text
@@ -250,6 +251,34 @@ END
     entry = REXML::Document.new(doc).to_atom_entry base_url
     assert_equal("http://www.tbray.org/ongoing/When/200x/2006/10/11/", entry.base)
   end
+  
+  def test_edit_url
+    doc = <<END
+<entry xmlns="http://www.w3.org/2005/Atom"><link rel="edit"/></entry>
+END
+    entry = REXML::Document.new(doc).to_atom_entry
+
+    assert_nil(entry.edit_url)
+
+    doc = <<END
+<entry xmlns="http://www.w3.org/2005/Atom"><link rel="edit"/></entry>
+END
+
+    entry = REXML::Document.new(doc).to_atom_entry
+
+    assert_nil(entry.edit_url)
+    
+    doc = <<END
+<entry xmlns="http://www.w3.org/2005/Atom">
+  <link rel="edit" href="http://necronomicorp.com/nil"/>
+</entry>
+END
+
+    entry = REXML::Document.new(doc).to_atom_entry
+
+    assert_equal("http://necronomicorp.com/nil", entry.edit_url)
+  end
+
 
   def assert_has_category xml, term
     assert_not_nil(REXML::XPath.match(xml, "/entry/category[@term = #{term}]"))

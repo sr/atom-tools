@@ -22,10 +22,7 @@ module Atom
     end
    
     def put!(entry, url = entry.edit_url)
-      raise "Cowardly refusing to PUT a non-Atom::Entry" unless entry.is_a? Atom::Entry
-      headers = {"Content-Type" => "application/atom+xml" }
-      
-      @http.put(url, entry.to_s, headers)
+      @http.put_atom_entry(entry, url)
     end
 
     def delete!(entry, url = entry.edit_url)
@@ -56,6 +53,13 @@ module Atom
       end
 
       REXML::Document.new(res.body).to_atom_entry(url)
+    end
+
+    def put_atom_entry(entry, url = entry.edit_url)
+      raise "Cowardly refusing to PUT a non-Atom::Entry (#{entry.class})" unless entry.is_a? Atom::Entry
+      headers = {"Content-Type" => "application/atom+xml" }
+      
+      put(url, entry.to_s, headers)
     end
   end
 end

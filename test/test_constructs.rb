@@ -13,6 +13,8 @@ class ConstructTest < Test::Unit::TestCase
     assert_equal "<3", entry.title.to_s
     assert_equal "&lt;3", entry.title.html
 
+    assert_equal "'<3'#text", entry.title.inspect
+
     title = entry.to_xml.root.children.first
     assert_equal "<3", title.text
 
@@ -46,5 +48,13 @@ class ConstructTest < Test::Unit::TestCase
     entry.content["type"] = "image/svg+xml"
 
     assert_equal("", entry.content.to_s)
+  end
+
+  require "date"
+  def test_date_construct
+    today = Date.today
+    time = Atom::Time.new today
+
+    assert_match(/^#{today}T00:00:00/, time.to_s)
   end
 end

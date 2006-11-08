@@ -28,7 +28,6 @@ module Atom
     def text; to_s end
 
     # returns a string suitable for dumping into an HTML document
-    #  (you should probably filter out certain tags, though)
     def html
       if self["type"] == "xhtml"
         to_s
@@ -37,12 +36,12 @@ module Atom
       end
     end
 
-    # attepts to parse the content and return it an array of REXML::Elements
+    # attepts to parse the content and return it as an array of REXML::Elements
     def xml
       if self["type"] == "xhtml"
         @content.children
       else
-        # UNIMPLEMENTED
+        # XXX - hpricot goes here?
         raise "I haven't implemented this yet"
       end
     end
