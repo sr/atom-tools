@@ -1,47 +1,6 @@
 require "net/http"
 require 'uri'
 
-# this authorization code is yet to be put to use
-# Written by Eric Hodel <drbrain@segment7.net>
-
-require 'digest/md5'
-
-module DigestAuth
-  @@nonce_count = -1
-
-  CNONCE = Digest::MD5.new("%x" % (Time.now.to_i + rand(65535))).hexdigest
-
-  def self.gen_auth_header(uri, params, user, password, is_IIS = false)
-    @@nonce_count += 1
-
-    a_1 = "#{user}:#{params['realm']}:#{password}"
-    a_2 = "GET:#{uri.path}"
-    request_digest = ''
-    request_digest << Digest::MD5.new(a_1).hexdigest
-    request_digest << ':' << params['nonce']
-    request_digest << ':' << ('%08x' % @@nonce_count)
-    request_digest << ':' << CNONCE
-    request_digest << ':' << params['qop']
-    request_digest << ':' << Digest::MD5.new(a_2).hexdigest
-
-    header = ''
-    header << "Digest username=\"#{user}\", "
-    header << "realm=\"#{params['realm']}\", "
-    if is_IIS then
-      header << "qop=\"#{params['qop']}\", "
-    else
-      header << "qop=#{params['qop']}, "
-    end
-    header << "uri=\"#{uri.path}\", "
-    header << "nonce=\"#{params['nonce']}\", "
-    header << "nc=#{'%08x' % @@nonce_count}, "
-    header << "cnonce=\"#{CNONCE}\", "
-    header << "response=\"#{Digest::MD5.new(request_digest).hexdigest}\""
-
-    return header
-  end
-end
-
 module URI # :nodoc: all
   class Generic; def to_uri; self; end; end
 end
@@ -58,6 +17,9 @@ module Atom
   # An object which handles the details of HTTP - particularly
   # authentication and caching (neither of which are fully implemented).
   #
+  # This object can be used on its own, or passed to an Atom::App,
+  # Atom::Collection or Atom::Feed, where it will be used for requests.
+  # 
   # All its HTTP methods return a Net::HTTPResponse
   class HTTP
     # used by the default #when_auth
