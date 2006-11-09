@@ -1,23 +1,23 @@
 require "atom/entry"
 require "yaml"
 
-# all for converting to and from YAML. the format's described in README.
 module Atom
   class Time
     def taguri; nil end
   end
 
   class Element < Hash
-    def taguri; nil end
+    def taguri # :nodoc:
+    end
 
-    def to_yaml_properties
+    def to_yaml_properties # :nodoc:
       self.class.elements.find_all do |n,k,r|
         v = get(n)
         v and not (v.respond_to? :empty? and v.empty?)
       end.map { |n,k,r| "@#{n}" }
     end
 
-    def to_yaml( opts = {} )
+    def to_yaml( opts = {} ) # :nodoc:
       YAML::quick_emit( object_id, opts ) do |out|
         out.map( taguri, to_yaml_style ) do |map|
           self.to_yaml_properties.each do |m|
@@ -41,13 +41,15 @@ module Atom
   end
 
   class Text < Atom::Element
-    def taguri; nil end
-    def to_yaml( opts = {} )
+    def taguri # :nodoc:
+    end
+
+    def to_yaml( opts = {} ) # :nodoc:
       YAML::quick_emit( object_id, opts ) do |out|
         out.scalar(taguri, to_s, to_yaml_style)
       end
     end
-    def to_yaml_style
+    def to_yaml_style # :nodoc:
       if @content.match("\n")
         :fold
       else
@@ -57,11 +59,12 @@ module Atom
   end
 
   class Entry
-    def to_yaml_type
-      '!necronomicorp.com,2006/entry' # XXX why doesn't this show up?
+    def to_yaml_type # :nodoc:
+      '!necronomicorp.com,2006/entry'
     end
-  
-    def self.from_yaml yaml # XXX different name?
+ 
+    # parses an Atom::Entry from YAML
+    def self.from_yaml yaml
       hash = if yaml.kind_of?(Hash); yaml else YAML.load(yaml); end
 
       entry = Atom::Entry.new

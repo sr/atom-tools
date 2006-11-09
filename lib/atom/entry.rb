@@ -5,6 +5,29 @@ require "atom/text"
 
 module Atom
   NS = "http://www.w3.org/2005/Atom"
+
+  # An individual entry in a feed. As an Atom::Element, it can be
+  # manipulated using accessors for each of its child elements. You
+  # should be able to set them using an instance of any class that
+  # makes sense
+  #
+  # Entries have the following children:
+  #
+  # id:: a universally unique IRI which permanently identifies the entry
+  # title:: a human-readable title (Atom::Text)
+  # content:: contains or links to the content of an entry (Atom::Content)
+  # rights:: information about rights held in and over an entry (Atom::Text)
+  # source:: the source feed's metadata (unimplemented)
+  # published:: a Time "early in the life cycle of an entry"
+  # updated:: the most recent Time an entry was modified in a way the publisher considers significant
+  # summary:: a summary, abstract or excerpt of an entry (Atom::Text)
+  #
+  # There are also +categories+, +links+, +authors+ and +contributors+,
+  # each of which is an Array of its respective type and can be used
+  # thusly:
+  #
+  #   author = entry.authors.new
+  #   author.name = "Captain Kangaroo"
   class Entry < Atom::Element
     # the master list of standard children and the types they map to
     element :id, String, true
@@ -12,7 +35,7 @@ module Atom
     element :content, Atom::Content, true
     
     element :rights, Atom::Text
-    # element :source, Atom::Feed  # complicated.
+    # element :source, Atom::Feed  # complicated, eg. serialization
     
     element :authors, Atom::Multiple(Atom::Author)
     element :contributors, Atom::Multiple(Atom::Contributor)
@@ -25,14 +48,14 @@ module Atom
     
     element :summary, Atom::Text
 
-    def initialize
+    def initialize # :nodoc:
       super "entry"
-      
-      # autogenerate ID here?
+     
+      # XXX I don't think I've ever actually used this
       yield self if block_given?
     end
 
-    def inspect
+    def inspect # :nodoc:
       "#<Atom::Entry id:'#{self.id}'>"
     end
 
@@ -40,8 +63,7 @@ module Atom
       self.updated = Time.now
     end
 
-    # tag with a space-separated string (adds bits as atom:categories)
-    #   not exactly core functionality, but it's trivial
+    # categorize the entry based on a space-separated string
     def tag_with string
       return if string.nil?
 
@@ -50,6 +72,7 @@ module Atom
       end
     end
 
+    # tests the entry's validity
     # XXX this needs a test suite before it can be trusted.
     def valid?
       self.class.required.each do |element|

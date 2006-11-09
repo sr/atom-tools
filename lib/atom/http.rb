@@ -42,26 +42,28 @@ module DigestAuth
   end
 end
 
-class URI::Generic
-  def to_uri
-    self
-  end
+module URI # :nodoc: all
+  class Generic; def to_uri; self; end; end
 end
 
-class String
-  def to_uri
-    URI.parse(self)
-  end
+class String # :nodoc:
+  def to_uri; URI.parse(self); end
 end
 
 module Atom
   UA = "atom-tools 0.9.0"
-  class Unauthorised < RuntimeError; end
+  class Unauthorized < RuntimeError # :nodoc:
+  end
 
+  # An object which handles the details of HTTP - particularly
+  # authentication and caching (neither of which are fully implemented).
+  #
+  # All its HTTP methods return a Net::HTTPResponse
   class HTTP
+    # used by the default #when_auth
     attr_accessor :user, :pass
 
-    def initialize
+    def initialize # :nodoc:
       @get_auth_details = lambda do |abs_url, realm|
         if @user and @pass
           [@user, @pass]
@@ -76,25 +78,33 @@ module Atom
       http_request(url, Net::HTTP::Get, nil, headers)
     end
   
-    # POSTs body at an url
+    # POSTs body to an url
     def post url, body, headers = {}
       http_request(url, Net::HTTP::Post, body, headers)
     end
 
-    # PUTs body at an url
+    # PUTs body to an url
     def put url, body, headers = {}
       http_request(url, Net::HTTP::Put, body, headers)
     end
 
-    # DELETEs an url
+    # DELETEs to url
     def delete url, body = nil, headers = {}
       http_request(url, Net::HTTP::Delete, body, headers)
     end
 
+    # a block that will be called when a remote server responds with
+    # 401 Unauthorized, so that your application can prompt for
+    # authentication details
+    #
+    # it will be called with the base URL of the requested URL, and the realm used in the WWW-Authenticate header.
+    # 
+    # it should return a value of the form [username, password]
     def when_auth &block
       @get_auth_details = block
     end
 
+    private
     def parse_wwwauth www_authenticate
       auth_type = www_authenticate.split[0] # "Digest" or "Basic"
       auth_params = {}
@@ -117,7 +127,7 @@ module Atom
 
       user, pass = @get_auth_details.call(abs_url, realm)
     
-      raise Unauthorised unless user and pass
+      raise Unauthorized unless user and pass
       
       if auth_type == "Basic"
         req.basic_auth user, pass
@@ -128,7 +138,7 @@ module Atom
       
       res = Net::HTTP.start(url.host, url.port) { |h| h.request(req, body) }
       
-      raise Unauthorised if res.kind_of? Net::HTTPUnauthorized
+      raise Unauthorized if res.kind_of? Net::HTTPUnauthorized
       res
     end
 
@@ -146,7 +156,6 @@ module Atom
       res
     end
     
-    private
     def new_request(url_string, method, init_headers = {})
       headers = { "User-Agent" => UA }.merge(init_headers)
       

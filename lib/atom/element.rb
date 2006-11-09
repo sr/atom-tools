@@ -1,8 +1,8 @@
 require "time"
 require "rexml/element"
 
-module Atom
-  class Time < ::Time
+module Atom # :nodoc:
+  class Time < ::Time # :nodoc:
     def self.new date
       return if date.nil?
 
@@ -19,7 +19,8 @@ module Atom
       date
     end
   end
-        
+       
+  # ignore the man behind the curtain.
   def self.Multiple klass
     Class.new(Array) do
       @class = klass
@@ -37,22 +38,37 @@ module Atom
 
       def self.holds; @class end
       def self.single?; true end
-      def taguri; nil end
+      def taguri; end
     end
   end
 
-  class Element < Hash
+  class Element < Hash 
+    # a REXML::Element that shares this element's extension attributes
+    # and child elements
     attr_reader :extensions
+
+    # this element's xml:base
     attr_accessor :base
+ 
+    # The following is a DSL for describing an atom element.
 
-    def self.attrs; @attrs || [] end
-    def self.elements; @elements || [] end
+    # this element's attributes
+    def self.attrs # :nodoc:
+      @attrs || []
+    end
 
-    def self.required
+    # this element's child elements
+    def self.elements # :nodoc:
+      @elements || []
+    end
+
+    # required child elements
+    def self.required # :nodoc:
       @elements.find { |name,kind,req| req }
     end
 
-    def self.inherited klass
+    # copy defined elements and attributes so inheritance works
+    def self.inherited klass # :nodoc:
       elements.each do |name, kind, req|
         klass.element name, kind, req
       end
@@ -61,7 +77,8 @@ module Atom
       end
     end
 
-    def self.element(name, kind, req = false)
+    # define a child element
+    def self.element(name, kind, req = false) # :nodoc:
       attr_reader name
 
       @elements ||= []
@@ -72,13 +89,15 @@ module Atom
       end
     end
 
-    def self.attrb(name, req = false)
+    # define an attribute 
+    def self.attrb(name, req = false) # :nodoc:
       @attrs ||= []
 
       @attrs << [name, req]
     end
-    
-    def self.define_accessor(name,kind)
+ 
+    # a little bit of magic
+    def self.define_accessor(name,kind) # :nodoc:
       define_method "#{name}=".to_sym do |value|
         return unless value
         
@@ -92,19 +111,22 @@ module Atom
       end
     end
 
+    # get the value of an attribute
     def [] key
       test_key key
    
       super
     end
-     
+    
+    # set the value of an attribute
     def []= key, value
       test_key key
 
       super
     end
 
-    def initialize name = nil
+    # internal junk you probably don't care about
+    def initialize name = nil # :nodoc:
       @extensions = REXML::Element.new("extensions")
       @local_name = name
 
@@ -116,11 +138,13 @@ module Atom
       end
     end
 
-    def local_name
+    # eg. "feed" or "entry" or "updated" or "title" or ...
+    def local_name # :nodoc:
       @local_name || self.class.name.split("::").last.downcase
     end
-    
-    def to_element
+   
+    # convert to a REXML::Element (with no namespace)
+    def to_element 
       elem = REXML::Element.new(local_name)
 
       self.class.elements.each do |name,kind,req|
@@ -155,7 +179,7 @@ module Atom
       elem
     end
     
-    # guess.
+    # convert to a REXML::Document (properly namespaced)
     def to_xml
       doc = REXML::Document.new
       root = to_element
@@ -163,19 +187,22 @@ module Atom
       doc << root
       doc
     end
-    
-    # you're not even trying now.
+   
+    # convert to an XML string
     def to_s
       to_xml.to_s
     end
     
     private
+
+    # like +valid_key?+ but raises on failure
     def test_key key
       unless valid_key? key
         raise RuntimeError, "this element (#{local_name}) doesn't have that attribute '#{key}'"
       end
     end
 
+    # tests that an attribute 'key' has been defined
     def valid_key? key
       self.class.attrs.find { |name,req| name.to_s == key }
     end
@@ -190,8 +217,17 @@ module Atom
   end
   
   # this facilitates YAML output
-  class AttrEl < Atom::Element; end
+  class AttrEl < Atom::Element # :nodoc:
+  end
 
+  # A link has the following attributes:
+  #
+  # href (required):: the link's IRI
+  # rel:: the relationship of the linked item to the current item
+  # type:: a hint about the media type of the linked item
+  # hreflang:: the language of the linked item (RFC3066)
+  # title:: human-readable information about the link
+  # length:: a hint about the length (in octets) of the linked item
   class Link < Atom::AttrEl
     attrb :href, true
     attrb :rel
@@ -200,27 +236,40 @@ module Atom
     attrb :title
     attrb :length
 
-    def initialize name = nil
+    def initialize name = nil # :nodoc:
       super name
 
       # just setting a default
       self["rel"] = "alternate"
     end
   end
-  
+ 
+  # A category has the following attributes:
+  #
+  # term (required):: a string that identifies the category
+  # scheme:: an IRI that identifies a categorization scheme
+  # label:: a human-readable label
   class Category < Atom::AttrEl
     attrb :term, true
     attrb :scheme
     attrb :label
   end
 
+  # A person construct has the following child elements:
+  #
+  # name (required):: a human-readable name
+  # uri:: an IRI associated with the person
+  # email:: an email address associated with the person
   class Author < Atom::Element
     element :name, String, true
     element :uri, String
     element :email, String
   end
-  
-  class Contributor < Atom::Element
+ 
+  # same as Atom::Author
+  class Contributor < Atom::Element 
+    # Author and Contributor should probably inherit from Person, but
+    # oh well.
     element :name, String, true
     element :uri, String
     element :email, String

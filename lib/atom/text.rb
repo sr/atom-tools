@@ -5,10 +5,14 @@ module XHTML
 end
 
 module Atom 
+  # An Atom::Element representing a text construct.
+  # It has a single attribute, "type", which accepts values
+  # "text", "html" and "xhtml"
+
   class Text < Atom::Element
     attrb :type
 
-    def initialize value, name
+    def initialize value, name # :nodoc:
       @content = value
       @content ||= "" # in case of nil
       self["type"] = "text"
@@ -24,14 +28,16 @@ module Atom
       end
     end
 
-    # XXX don't use this (yet)
-    def text; to_s end
+    # XXX do something different
+    def text # :nodoc:
+      to_s
+    end
 
     # returns a string suitable for dumping into an HTML document
     def html
-      if self["type"] == "xhtml"
+      if self["type"] == "xhtml" or self["type"] == "html"
         to_s
-      elsif self["type"] == "html" or self["type"] == "text"
+      elsif self["type"] == "text"
         REXML::Text.new(to_s).to_s
       end
     end
@@ -40,17 +46,19 @@ module Atom
     def xml
       if self["type"] == "xhtml"
         @content.children
+      elsif self["type"] == "text"
+        [self.to_s]
       else
         # XXX - hpricot goes here?
         raise "I haven't implemented this yet"
       end
     end
 
-    def inspect
+    def inspect # :nodoc:
       "'#{to_s}'##{self['type']}"
     end
 
-    def []= key, value
+    def []= key, value # :nodoc:
       if key == "type"
         unless valid_type? value
           raise "atomTextConstruct type '#{value}' is meaningless"
@@ -68,7 +76,7 @@ module Atom
       super(key, value)
     end
     
-    def to_element
+    def to_element # :nodoc:
       e = super
 
       if self["type"] == "text"
@@ -131,6 +139,10 @@ module Atom
     end
   end
 
+  # Atom::Content behaves the same as an Atom::Text, but for two things:
+  #
+  # * the "type" attribute can be an arbitrary media type
+  # * there is a "src" attribute which is an IRI that points to the content of the entry (in which case the content element will be empty)
   class Content < Atom::Text
     attrb :src
 

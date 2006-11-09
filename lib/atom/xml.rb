@@ -2,7 +2,7 @@ require "atom/entry"
 require "atom/feed"
 require "uri"
 
-module REXML
+module REXML # :nodoc: all
   class Document
     def to_atom_entry base = ""
       self.root.to_atom_entry base
