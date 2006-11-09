@@ -12,8 +12,9 @@ class AtomProtocolTest < Test::Unit::TestCase
 
   def test_parse_wwwauth
     header = 'Basic realm="SokEvo"'
-    
-    auth_type, auth_params = @http.parse_wwwauth header
+   
+    # parse_wwwauth is a private method
+    auth_type, auth_params = @http.send :parse_wwwauth, header
 
     assert_equal "Basic", auth_type
     assert_equal "SokEvo", auth_params["realm"]
@@ -64,7 +65,7 @@ class AtomProtocolTest < Test::Unit::TestCase
 
     one_shot
     
-    assert_raises(Atom::Unauthorised) { get_root }
+    assert_raises(Atom::Unauthorized) { get_root }
 
     @http.when_auth do |abs_url,realm|
       assert_equal "http://localhost:#{@port}/", abs_url 

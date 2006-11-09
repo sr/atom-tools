@@ -244,6 +244,21 @@ END
     assert_equal "Atom draft-07 snapshot", feed.entries.first.title.to_s
   end
 
+  def test_parse_html_content
+    xml = <<END
+<entry xmlns="http://www.w3.org/2005/Atom">
+  <summary type="html">
+    &lt;p>...&amp;amp; as a result of this, I submit that &lt;var>pi&lt;/var> &amp;lt; 4
+  </summary>
+</entry>
+END
+
+    entry = REXML::Document.new(xml).to_atom_entry
+
+    assert_equal "html", entry.summary["type"]
+    assert_equal "<p>...&amp; as a result of this, I submit that <var>pi</var> &lt; 4", entry.summary.html.strip
+  end
+
   def test_relative_base
     base_url = "http://www.tbray.org/ongoing/ongoing.atom"
     doc = "<entry xmlns='http://www.w3.org/2005/Atom' xml:base='When/200x/2006/10/11/'/>"
