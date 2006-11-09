@@ -61,7 +61,7 @@ module Atom
         raise Atom::HTTPException, "expected Atom::Entry, didn't get it"
       end
 
-      REXML::Document.new(res.body).to_atom_entry(url)
+      Atom::Entry.parse(res.body, url)
     end
 
     # PUT an Atom::Entry to a URL

@@ -14,7 +14,7 @@ class AtomTest < Test::Unit::TestCase
     entry1 = get_entry
     entry1.id = "http://example.org/test"
     entry1.content = "an original entry"
-    entry1.update!
+    entry1.updated!
 
     feed << entry1
 
@@ -28,7 +28,7 @@ class AtomTest < Test::Unit::TestCase
 
     entry2 = entry1.dup
     entry2.content = "a changed entry"
-    entry2.update!
+    entry2.updated!
 
     feed << entry2
 
@@ -85,7 +85,7 @@ content: not much here\
   def get_elements entry
     xml = entry.to_xml
 
-    assert_equal(entry.to_s, xml.to_atom_entry.to_s) 
+    assert_equal(entry.to_s, Atom::Entry.parse(xml).to_s) 
     
     base_check xml
     

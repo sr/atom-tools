@@ -113,6 +113,7 @@ module REXML # :nodoc: all
       end
     end
 
+    # 'base' is the URI that you fetched this document from.
     def to_atom_entry base = ""
       unless self.name == "entry" and self.namespace == Atom::NS
         raise TypeError, "this isn't an atom:entry! (name: #{self.name}, ns: #{self.namespace})"
@@ -152,6 +153,7 @@ module REXML # :nodoc: all
       entry
     end
 
+    # 'base' is the URI that you fetched this document from.
     def to_atom_feed base = ""
       unless self.name == "feed" and self.namespace == Atom::NS
         raise TypeError, "this isn't an atom:feed! (name: #{self.name}, ns: #{self.namespace})"

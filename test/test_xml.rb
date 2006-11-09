@@ -76,7 +76,7 @@ class AtomTest < Test::Unit::TestCase
 
     assert_match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/, xml.elements["//updated"].text, "atom:updated isn't in xsd:datetime format")
 
-    entry.update!
+    entry.updated!
 
     assert((Time.parse("1970-01-01") < entry.updated), "<updated/> is not updated")
   end
@@ -140,7 +140,7 @@ str = '<entry xmlns="http://www.w3.org/2005/Atom">
   </content>
 </entry>'
 
-    entry = REXML::Document.new(str).to_atom_entry 
+    entry = Atom::Entry.parse(str)
   
     assert_equal("Atom draft-07 snapshot", entry.title.to_s)
     assert_equal("tag:example.org,2003:3.2397", entry.id)
@@ -211,7 +211,7 @@ feed = <<END
 </feed>
 END
 
-    feed = REXML::Document.new(feed).to_atom_feed
+    feed = Atom::Feed.parse(feed)
 
     assert_equal("", feed.base)
 
@@ -253,7 +253,7 @@ END
 </entry>
 END
 
-    entry = REXML::Document.new(xml).to_atom_entry
+    entry = Atom::Entry.parse(xml)
 
     assert_equal "html", entry.summary["type"]
     assert_equal "<p>...&amp; as a result of this, I submit that <var>pi</var> &lt; 4", entry.summary.html.strip
@@ -263,7 +263,7 @@ END
     base_url = "http://www.tbray.org/ongoing/ongoing.atom"
     doc = "<entry xmlns='http://www.w3.org/2005/Atom' xml:base='When/200x/2006/10/11/'/>"
     
-    entry = REXML::Document.new(doc).to_atom_entry base_url
+    entry = Atom::Entry.parse(doc, base_url)
     assert_equal("http://www.tbray.org/ongoing/When/200x/2006/10/11/", entry.base)
   end
   
@@ -271,7 +271,7 @@ END
     doc = <<END
 <entry xmlns="http://www.w3.org/2005/Atom"><link rel="edit"/></entry>
 END
-    entry = REXML::Document.new(doc).to_atom_entry
+    entry = Atom::Entry.parse(doc)
 
     assert_nil(entry.edit_url)
 
@@ -279,7 +279,7 @@ END
 <entry xmlns="http://www.w3.org/2005/Atom"><link rel="edit"/></entry>
 END
 
-    entry = REXML::Document.new(doc).to_atom_entry
+    entry = Atom::Entry.parse(doc)
 
     assert_nil(entry.edit_url)
     
@@ -289,7 +289,7 @@ END
 </entry>
 END
 
-    entry = REXML::Document.new(doc).to_atom_entry
+    entry = Atom::Entry.parse(doc)
 
     assert_equal("http://necronomicorp.com/nil", entry.edit_url)
   end
@@ -310,7 +310,7 @@ END
   def get_elements entry
     xml = entry.to_xml
  
-    assert_equal(entry.to_s, xml.to_atom_entry.to_s) 
+    assert_equal(entry.to_s, Atom::Entry.parse(xml).to_s) 
     
     base_check xml
     

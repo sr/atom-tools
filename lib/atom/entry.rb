@@ -55,11 +55,21 @@ module Atom
       yield self if block_given?
     end
 
+    # parses XML fetched from +base+ into an Atom::Entry
+    def self.parse xml, base = ""
+      if xml.respond_to? :to_atom_entry
+        xml.to_atom_entry(base)
+      else
+        REXML::Document.new(xml.to_s).to_atom_entry(base)
+      end
+    end
+
     def inspect # :nodoc:
       "#<Atom::Entry id:'#{self.id}'>"
     end
 
-    def update!
+    # declare that this entry has updated
+    def updated!
       self.updated = Time.now
     end
 

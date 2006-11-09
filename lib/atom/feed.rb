@@ -68,6 +68,15 @@ module Atom
       "<#{@uri} entries: #{entries.length} title='#{title}'>"
     end
 
+    # parses XML fetched from +base+ into an Atom::Feed
+    def self.parse xml, base = ""
+      if xml.respond_to? :to_atom_entry
+        xml.to_atom_feed(base)
+      else
+        REXML::Document.new(xml.to_s).to_atom_feed(base)
+      end
+    end
+
     # Create a new Feed that can be found at feed_uri and retrieved
     # using an Atom::HTTP object http
     def initialize feed_uri = nil, http = Atom::HTTP.new
@@ -182,7 +191,7 @@ module Atom
         return self
       end
 
-      coll = coll.to_atom_feed(self.base.to_s)
+      coll = Atom::Feed.parse(coll, self.base.to_s)
       merge! coll
      
       link = coll.links.find { |l| l["rel"] = "next" and l["type"] == "application/atom+xml" }
