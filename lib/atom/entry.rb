@@ -82,8 +82,9 @@ module Atom
       end
     end
 
+# XXX this needs a test suite before it can be trusted.
+=begin
     # tests the entry's validity
-    # XXX this needs a test suite before it can be trusted.
     def valid?
       self.class.required.each do |element|
         unless instance_variable_get "@#{element}"
@@ -126,6 +127,7 @@ module Atom
 
       true
     end
+=end
   end
 end
 
