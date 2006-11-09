@@ -54,7 +54,7 @@ module Atom
        
         coll = Atom::Collection.new(url, http)
 
-        # XXX I think this is a Text Construct now
+        # XXX this is a Text Construct, and should be parsed as such
         coll.title = REXML::XPath.first( collection,
                                     "./atom:title",
                                     {"app" => Atom::PP_NS,

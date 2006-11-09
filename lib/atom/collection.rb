@@ -8,9 +8,9 @@ module Atom
   # represents an Atom Publishing Protocol Collection
   class Collection < Feed
     # comma separated string that contains a list of media types
-    # accepted by a collection
+    # accepted by a collection.
     #
-    # XXX lacking abstraction alert!
+    # XXX I should parse this in some way, but I'm not sure what's useful 
     attr_accessor :accepts
 
     def initialize(uri, http = Atom::HTTP.new)
