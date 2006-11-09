@@ -61,7 +61,7 @@ module REXML # :nodoc: all
         type = text.ns_attr("type")
         src = text.ns_attr("src")
 
-        if src                          # XXX ignore src= outside of <content/>
+        if src and name == :content 
           # the only content is out of line
           entry.send( "#{name}=".to_sym, "")
           entry.send(name.to_sym)["src"] = src
@@ -77,7 +77,7 @@ module REXML # :nodoc: all
           raw = text.text
           entry.send( "#{name}=", raw )
         end
-        
+      
         if text.attributes["xml:base"]
           entry.send(name.to_sym).base = text.attributes["xml:base"]
         end

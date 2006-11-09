@@ -259,6 +259,34 @@ END
     assert_equal "<p>...&amp; as a result of this, I submit that <var>pi</var> &lt; 4", entry.summary.html.strip
   end
 
+  def test_parse_outofline_content
+    xml = <<END
+<entry xmlns="http://www.w3.org/2005/Atom">
+  <summary src="http://necronomicorp.com/nil">
+Summary doesn't have src.
+  </summary>
+</entry>
+END
+  
+    entry = Atom::Entry.parse xml
+
+    assert_raises(RuntimeError) { entry.summary["src"] }
+    assert_equal "Summary doesn't have src.", entry.summary.to_s.strip
+
+    xml = <<END
+<entry xmlns="http://www.w3.org/2005/Atom">
+  <content src="http://necronomicorp.com/nil">
+src means empty content.
+  </content>
+</entry>
+END
+
+    entry = Atom::Entry.parse xml
+
+    assert_equal "http://necronomicorp.com/nil", entry.content["src"]
+    assert_equal "", entry.content.to_s
+  end
+
   def test_relative_base
     base_url = "http://www.tbray.org/ongoing/ongoing.atom"
     doc = "<entry xmlns='http://www.w3.org/2005/Atom' xml:base='When/200x/2006/10/11/'/>"
@@ -307,9 +335,10 @@ END
     Atom::Entry.new
   end
 
+  # round-trips it to make sure things stay the same
   def get_elements entry
     xml = entry.to_xml
- 
+
     assert_equal(entry.to_s, Atom::Entry.parse(xml).to_s) 
     
     base_check xml
