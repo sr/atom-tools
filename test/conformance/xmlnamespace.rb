@@ -48,6 +48,7 @@ class TestXMLNamespaceConformance < Test::Unit::TestCase
   end
 
   def test_3
+    assert(false, "I haven't written the last test")
     # XXX FINISHME
   end
 end
