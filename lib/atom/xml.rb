@@ -2,6 +2,12 @@ require "atom/entry"
 require "atom/feed"
 require "uri"
 
+# Two big, interrelated problems:
+#
+# * I probably shouldn't be playing around in REXML's namespace
+# * REXML isn't a great parser, and other options would be nice
+#
+# This shouldn't be hard to do, it's just tedious and non-critical
 module REXML # :nodoc: all
   class Document
     def to_atom_entry base = ""
@@ -38,7 +44,7 @@ module REXML # :nodoc: all
     end
   
     # a workaround for the odd way in which REXML handles namespaces
-    # returns the value of the attribute 'name' in the same namespace as this element
+    # returns the value of the attribute +name+ that's in the same namespace as this element
     def ns_attr name
       if not self.prefix.empty?
         attr = self.prefix + ":" + name
