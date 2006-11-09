@@ -28,11 +28,6 @@ module Atom
       end
     end
 
-    # XXX do something different
-    def text # :nodoc:
-      to_s
-    end
-
     # returns a string suitable for dumping into an HTML document
     def html
       if self["type"] == "xhtml" or self["type"] == "html"
