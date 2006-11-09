@@ -20,6 +20,7 @@ def setup_rdoc files
     rdoc.title = NAME + " documentation"
     rdoc.rdoc_dir = 'doc'
     rdoc.options << '--line-numbers'
+    rdoc.options << '--inline-source'
     rdoc.rdoc_files.add(files)
   end
 end
