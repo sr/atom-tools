@@ -3,6 +3,8 @@ require "rake/testtask"
 require "rake/rdoctask"
 require "rake/gempackagetask"
 
+require "rake/clean"
+
 NAME = "atom-tools"
 VERS = "0.9.0"
 
