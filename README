@@ -1,58 +1,70 @@
-= Installation
+= atom-tools README
 
-Move the atom directory to somewhere in your $RUBYLIB.
+atom-tools is an all-in-one library for parsing, creating and manipulating Atom <http://www.w3.org/2005/Atom> feeds and entries.
+It handles all the nasty XML and HTTP details so that you don't have to.
 
-= Basic Usage
-  require "atom/entry"
+== Example
 
-  entry = Atom::Entry.new
+  require "atom/feed"
+  require "open-uri"
 
-  entry.title = "Argh!"
-
-  author = entry.authors.new
-  author.name = "just this guy, you know?"
-
-  file = entry.links.new
-  file["rel"] = "enclosure"
-  file["href"] = "http://example.com/file.ogg"
-
-text content:
-
-  entry.content = "foo"
-
-XHTML content:
-  (content["type"] defaults to text unless it's set after content *every time*):
-
-  xml = REXML::Document.new(open("http://ruby-lang.org").read)
-  entry.content = xml
-  entry.content["type"] = "xhtml"
-
-  entry.title = REXML::Document.new("<em>goodness</em> gracious")
-  entry.title["type"] = "xhtml"
-
-= To and From XML
-    
-    **WARNING**
-I'm waiting on the APP WG to decide whether atom:entrys are always atom:entrys, so this isn't guaranteed to give you valid output. You can call valid? on an entry, but this isn't always helpful
-    **WARNING**
-
-to:
+  feed = Atom::Feed.new "http://www.tbray.org/ongoing/ongoing.atom"
+    # => <http://www.tbray.org/ongoing/ongoing.atom entries: 0 title=''>
   
-  entry.to_xml
+  feed.update!
+  feed.entries.length
+    # => 20
+
+  feed.title.to_s
+    # => "ongoing"
+
+  feed.authors.first.name
+    # => "Tim Bray"
+
+  entry = feed.entries.first
+    # => #<Atom::Entry id:'http://www.tbray.org/ongoing/When/200x/2006/11/07/Munich'>
+
+  entry.title.to_s
+    # => "M\303\274nchen"
+
+  entry.links.last
+    # => {"href"=>"http://www.tbray.org/ongoing/When/200x/2006/11/07/Munich#comments", "rel"=>"replies", "type" => "application/xhtml+xml"}
   
-returns a REXML::Document and
+  entry.summary.to_s
+    # => "That local spelling is nicer than the ugly English [...]"
 
-  entry.to_s
+Things are explained in more detail in the RDoc.
 
-serializes that document.
+== The Atom Publishing Protocol
 
+  require "atom/app"
 
-from:
-  require "atom/entry"
+  app = Atom::App.new "http://necronomicorp.com/app.xml"
+  coll = app.collections.first
+    # => <http://necronomicorp.com/testatom?app entries: 0 title='testing: entry endpoint'>
 
-  entry = REXML::Document.new("entry.xml").to_atom_entry
+  coll.update!
+    # => <http://necronomicorp.com/testatom?app entries: 10 title='testing the APP'>
 
-= Extension Elements
+  entry = coll.entries.first
+  entry.title
+    # => 'html entities'#text
+
+  # modify the title
+  entry.title = "HTML entities"
+
+  # store the modified entry
+  coll.put! entry
+    # => #<Net::HTTPOK 200 OK readbody=true>
+
+  coll.entries.first.title
+    # => 'HTML entities'#text
+
+For details on authentication, see the documentation for Atom::HTTP
+
+== Advanced Use
+
+=== Extension Elements
 
   irt = REXML::Element.new("in-reply-to")
   irt.add_namespace "http://purl.org/syndication/thread/1.0"
@@ -61,13 +73,17 @@ from:
 
   entry.extensions << irt
 
-= YAML
+  entry.to_s
+    # => '<entry xmlns="http://www.w3.org/2005/Atom"><in-reply-to ref="tag:entries.com,2005:1" xmlns="http://purl.org/syndication/thread/1.0"/></entry>'
 
-For easy-authoring, atom-tools can now slurp an atom:entry from YAML:
+== YAML
+
+if you feel like writing this stuff by hand, atom-tools can slurp an
+atom:entry from YAML:
 
   require "atom/yaml"
 
-  yaml = << END
+  yaml = <<END
     title: Atom-Drunk Pirates Run Amok!
     tags: tag1 tag2
     authors:
@@ -85,42 +101,3 @@ For easy-authoring, atom-tools can now slurp an atom:entry from YAML:
   END
 
   entry = Atom::Entry.from_yaml(yaml)
-
-= Feeds and Collections
-
-  require "atom/feed"
-
-  feed = Atom::Feed.new("http://example.org/feed.atom")
-  feed.update!
-  feed.entries
-    => [ #<Atom::Entry:0xb7...> ]
-
-Incremental feeds are supported (see mnot's feed-history draft).
-
-  feed.get_everything!
-
-  feed.entries
-    => [ # the entries in the logical feed ]
-
-= Getting down with the PP
-
-  require "atom/collection"
-
-  coll = Atom::Collection.new(coll_uri)
-
-  entry = Atom::Entry.new
-  coll.post! entry
-
-  entry = coll.get_url(coll.entries.first.edit_url)
-
-  entry.title = "an updated title"
-  coll.put! entry
-  coll.delete! entry
-
-Special HTTP requirements (eg. authentication) can be met by passing an Atom::HTTP object when a feed or collection is initialized
-
-  http = Atom::HTTP.new 
-  http.user, http.pass = "username", "password"
-  collection = Atom::Collection.new("http://example.org/feed.atom", http)
-
-If the http object runs into a 401 Authorization Required http will respond with the given username and password
