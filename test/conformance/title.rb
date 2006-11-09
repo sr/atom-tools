@@ -26,7 +26,7 @@ class TestTitleConformance < Test::Unit::TestCase
 
     entry = feed.entries.first
     assert_equal "html", entry.title["type"] 
-    assert_equal "&lt;title&gt;", entry.title.html
+    assert_equal "&lt;title>", entry.title.html
   end
 
   def test_html_entity
@@ -37,7 +37,7 @@ class TestTitleConformance < Test::Unit::TestCase
 
     entry = feed.entries.first
     assert_equal "html", entry.title["type"] 
-    assert_equal "&lt;title&gt;", entry.title.html
+    assert_equal "&lt;title>", entry.title.html
   end
 
   def test_html_ncr
@@ -48,7 +48,7 @@ class TestTitleConformance < Test::Unit::TestCase
 
     entry = feed.entries.first
     assert_equal "html", entry.title["type"] 
-    assert_equal "&lt;title&gt;", entry.title.html
+    assert_equal "&lt;title>", entry.title.html
   end
 
   def test_text_cdata
