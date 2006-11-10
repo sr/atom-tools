@@ -1,12 +1,12 @@
 #!/usr/bin/ruby
 
 # syntax: ./atom-client.rb <introspection-url> [username] [password]
-#   a 
+#   a really simple YAML-and-$EDITOR based Publishing Protocol client
 
 require "tempfile"
 
 require "atom/yaml"
-require "atom/app"
+require "atom/service"
 require "atom/http"
 
 require "rubygems"
@@ -58,7 +58,7 @@ class Atom::Entry
   def edit
     yaml = YAML.load(self.to_yaml)
     
-    # humans don't care about these things
+    # humans don't care about these things, we can replace it later
     yaml.delete "id"
 
     if yaml["links"]
@@ -68,7 +68,7 @@ class Atom::Entry
     end
 
     entry = write_entry(yaml.to_yaml)
-    # the id doesn't appear in YAML, it should remain the same
+    
     entry.id = self.id
 
     entry
@@ -100,11 +100,14 @@ def choose_collection server
 
   collections = []
 
-  # still lame
-  server.collections.each_with_index do |coll, index|
-    collections << coll
+  # flatten it out into one big workspace
+  server.workspaces.each do |ws|
+    puts ws.title.to_s + ":"
+    ws.collections.each_with_index do |coll, index|
+      collections << coll
 
-    puts "#{index}: #{coll.title}"
+      puts "#{index}: #{coll.title}"
+    end
   end
 
   choose_from collections
@@ -181,7 +184,7 @@ http = Atom::HTTP.new
 http.user = ARGV[1]
 http.pass = ARGV[2]
 
-server = Atom::App.new(introspection_url, http)
+server = Atom::Service.new(introspection_url, http)
 
 coll = choose_collection server
 
