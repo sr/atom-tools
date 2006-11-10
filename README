@@ -37,10 +37,10 @@ Things are explained in more detail in the RDoc.
 
 == The Atom Publishing Protocol
 
-  require "atom/app"
+  require "atom/service"
 
-  app = Atom::App.new "http://necronomicorp.com/app.xml"
-  coll = app.collections.first
+  service = Atom::Service.new "http://necronomicorp.com/app.xml"
+  coll = service.workspaces.first.collections.first
     # => <http://necronomicorp.com/testatom?app entries: 0 title='testing: entry endpoint'>
 
   coll.update!

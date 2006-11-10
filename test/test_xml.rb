@@ -1,7 +1,7 @@
 require "test/unit"
 
 # for entry.edit_url
-require "atom/app"
+require "atom/service"
 
 class AtomTest < Test::Unit::TestCase
   def test_text_type_text

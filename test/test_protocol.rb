@@ -1,6 +1,6 @@
 require "test/unit"
 
-require "atom/app"
+require "atom/service"
 
 class FakeHTTP
   Response = Struct.new(:body, :code, :content_type)
