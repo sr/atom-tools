@@ -5,7 +5,7 @@ require "atom/feed"
 require "webrick/httputils"
 
 module Atom
-  # represents an Atom Publishing Protocol Collection
+  # a Collection is an Atom::Feed with extra Protocol-specific methods
   class Collection < Feed
     # comma separated string that contains a list of media types
     # accepted by a collection.
@@ -17,7 +17,7 @@ module Atom
       super uri, http
     end
 
-    # POST an entry to the collection, with a slug
+    # POST an entry to the collection, with an optional slug
     def post!(entry, slug = nil)
       raise "Cowardly refusing to POST a non-Atom::Entry" unless entry.is_a? Atom::Entry
       headers = {"Content-Type" => "application/atom+xml" }

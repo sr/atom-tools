@@ -17,7 +17,7 @@ module Atom
   # An object which handles the details of HTTP - particularly
   # authentication and caching (neither of which are fully implemented).
   #
-  # This object can be used on its own, or passed to an Atom::App,
+  # This object can be used on its own, or passed to an Atom::Service,
   # Atom::Collection or Atom::Feed, where it will be used for requests.
   # 
   # All its HTTP methods return a Net::HTTPResponse

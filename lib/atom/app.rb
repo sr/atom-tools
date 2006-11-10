@@ -14,12 +14,12 @@ module Atom
   class WrongResponse < RuntimeError # :nodoc:
   end
 
-  # an Atom::Workspace has a title (Atom::Text) and an Array of Atom::Collection s
+  # an Atom::Workspace has a #title (Atom::Text) and #collections, an Array of Atom::Collection s
   class Workspace < Atom::Element
     element :collections, Atom::Multiple(Atom::Collection)
     element :title, Atom::Text
 
-    def self.parse(xml, base = "")
+    def self.parse(xml, base = "") # :nodoc:
       ws = Atom::Workspace.new("workspace")
 
       rxml = if xml.is_a? REXML::Document
