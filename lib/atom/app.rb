@@ -1,6 +1,7 @@
 require "uri"
 
 require "atom/http"
+require "atom/element"
 require "atom/collection"
 
 module Atom
@@ -13,59 +14,90 @@ module Atom
   class WrongResponse < RuntimeError # :nodoc:
   end
 
-  # Atom::App represents an Atom Publishing Protocol introspection
-  # document.
-  class App
-    # collections referred to by the introspection document
-    attr_reader :collections
+  # an Atom::Workspace has a title (Atom::Text) and an Array of Atom::Collection s
+  class Workspace < Atom::Element
+    element :collections, Atom::Multiple(Atom::Collection)
+    element :title, Atom::Text
 
-    # retrieves and parses an Atom introspection document.
-    def initialize(introspection_url, http = Atom::HTTP.new)
-      i_url = URI.parse(introspection_url)
+    def self.parse(xml, base = "")
+      ws = Atom::Workspace.new("workspace")
 
-      rxml = nil
-
-      res = http.get(i_url)
-
-      unless res.code == "200" # redirects, &c.
-        raise WrongResponse, "introspection document responded with unexpected code #{res.code}"
+      rxml = if xml.is_a? REXML::Document
+        xml.root
+      elsif xml.is_a? REXML::Element
+        xml
+      else 
+        REXML::Document.new(xml)
       end
 
-      unless res.content_type == "application/atomserv+xml"
-        raise WrongMimetype, "this isn't an introspection document!"
-      end
+      xml.fill_text_construct(ws, "title")
 
-      rxml = REXML::Document.new(res.body)
-
-      unless rxml.root.namespace == PP_NS
-        raise WrongNamespace, "this isn't an introspection document!"
-      end
-
-      # TODO: expose workspaces
-      colls = REXML::XPath.match( rxml, 
-                                  "/app:service/app:workspace/app:collection",
-                                  {"app" => Atom::PP_NS} )
-      
-      @collections = []
-      
-      colls.each do |collection|
+      REXML::XPath.match( rxml, 
+                          "./app:collection",
+                          {"app" => Atom::PP_NS} ).each do |col_el|
         # absolutize relative URLs
-        url = i_url + URI.parse(collection.attributes["href"])
+        url = base + URI.parse(col_el.attributes["href"])
        
-        coll = Atom::Collection.new(url, http)
+        coll = Atom::Collection.new(url, @http)
 
         # XXX this is a Text Construct, and should be parsed as such
-        coll.title = REXML::XPath.first( collection,
-                                    "./atom:title",
-                                    {"app" => Atom::PP_NS,
-                                     "atom" => Atom::NS   } ).text
+        col_el.fill_text_construct(coll, "title")
 
-        accepts = REXML::XPath.first( collection,
+        accepts = REXML::XPath.first( col_el,
                                       "./app:accept",
                                       {"app" => Atom::PP_NS} )
         coll.accepts = (accepts ? accepts.text : "entry")
         
-        @collections << coll
+        ws.collections << coll
+      end
+
+      ws
+    end
+  end
+
+
+  # Atom::Service represents an Atom Publishing Protocol service document. Its only child is #workspaces, which is an Array of Atom::Workspace s
+  class Service < Atom::Element
+    element :workspaces, Atom::Multiple(Atom::Workspace)
+
+    # retrieves and parses an Atom service document.
+    def initialize(service_url, http = Atom::HTTP.new)
+      super("service")
+
+      @url = URI.parse(service_url)
+      @http = http
+
+      rxml = nil
+
+      res = @http.get(@url)
+
+      unless res.code == "200" # XXX needs to handle redirects, &c.
+        raise WrongResponse, "service document URL responded with unexpected code #{res.code}"
+      end
+
+      unless res.content_type == "application/atomserv+xml"
+        raise WrongMimetype, "this isn't an atom service document!"
+      end
+
+      parse(res.body)
+    end
+  
+    private
+    def parse(xml)
+      rxml = if xml.is_a? REXML::Document
+        xml.root
+      elsif xml.is_a? REXML::Element
+        xml
+      else 
+        REXML::Document.new(xml)
+      end
+
+      unless rxml.root.namespace == PP_NS
+        raise WrongNamespace, "this isn't an atom service document!"
+      end
+
+      REXML::XPath.match( rxml, "/app:service/app:workspace", {"app" => Atom::PP_NS} ).each do |ws_el|
+        self.workspaces << Atom::Workspace.parse(ws_el, @url)
       end
     end
   end

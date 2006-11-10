@@ -40,17 +40,20 @@ END
     http = FakeHTTP.new({ "http://example.com/service.xml" => service }, "application/atomserv+xml")
 
 
-    server = Atom::App.new "http://example.com/service.xml", http
+    service = Atom::Service.new "http://example.com/service.xml", http
 
-    coll = server.collections.first
-    assert_equal(URI.parse("http://example.org/myblog/entries"), coll.uri)
-    assert_equal("Entries", coll.title.to_s)
-    assert_equal("entry", coll.accepts)
+    ws = service.workspaces.first
+    assert_equal "My Blog", ws.title.to_s 
 
-    coll = server.collections.last
-    assert_equal(URI.parse("http://example.org/myblog/fotes"), coll.uri)
-    assert_equal("Photos", coll.title.to_s)
-    assert_equal("image/*", coll.accepts)
+    coll = ws.collections.first
+    assert_equal URI.parse("http://example.org/myblog/entries"), coll.uri 
+    assert_equal "Entries", coll.title.to_s 
+    assert_equal "entry", coll.accepts 
+
+    coll = ws.collections.last
+    assert_equal URI.parse("http://example.org/myblog/fotes"), coll.uri 
+    assert_equal "Photos", coll.title.to_s 
+    assert_equal "image/*", coll.accepts 
 
     # XXX write a test for relative hrefs
   end
