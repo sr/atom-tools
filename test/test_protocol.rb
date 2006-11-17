@@ -20,8 +20,7 @@ end
 
 class AtomProtocolTest < Test::Unit::TestCase
   def test_introspection
-
-    service = <<END
+    doc = <<END
 <service xmlns="http://purl.org/atom/app#"
   xmlns:atom="http://www.w3.org/2005/Atom">
   <workspace>
@@ -37,10 +36,11 @@ class AtomProtocolTest < Test::Unit::TestCase
 </service>
 END
     
-    http = FakeHTTP.new({ "http://example.com/service.xml" => service }, "application/atomserv+xml")
+    #http = FakeHTTP.new({ "http://example.com/service.xml" => service }, "application/atomserv+xml")
 
-
-    service = Atom::Service.new "http://example.com/service.xml", http
+    service = Atom::Service.new
+    service.parse doc
+    #service = Atom::Service.new "http://example.com/service.xml", http
 
     ws = service.workspaces.first
     assert_equal "My Blog", ws.title.to_s 
@@ -56,6 +56,61 @@ END
     assert_equal "image/*", coll.accepts 
 
     # XXX write a test for relative hrefs
+  end
+
+  def test_write_introspection
+    service = Atom::Service.new
+
+    ws = service.workspaces.new
+
+    ws.title = "Workspace 1"
+
+    coll = Atom::Collection.new "http://example.org/entries"
+    coll.title = "Entries"
+    ws.collections << coll
+
+    coll = Atom::Collection.new "http://example.org/audio"
+    coll.title = "Audio"
+    coll.accepts = "audio/*"
+    ws.collections << coll
+
+    nses = { "app" => Atom::PP_NS, "atom" => Atom::NS }
+
+    doc = REXML::Document.new(service.to_s)
+
+    assert_equal "http://purl.org/atom/app#", doc.root.namespace
+
+    ws = REXML::XPath.first( doc.root, 
+                              "/app:service/app:workspace", 
+                              nses )
+   
+    title = REXML::XPath.first( ws, "./atom:title", nses)
+
+    assert_equal "Workspace 1", title.text
+    assert_equal "http://www.w3.org/2005/Atom", title.namespace
+
+    colls = REXML::XPath.match( ws, "./app:collection", nses)
+    assert_equal(2, colls.length)
+
+    entries = colls.first
+
+    assert_equal "http://example.org/entries", entries.attributes["href"]
+
+    title = REXML::XPath.first(entries, "./atom:title", nses)
+    assert_equal "Entries", title.text
+
+    accepts = REXML::XPath.first(entries, "./app:accepts", nses)
+    assert_nil accepts
+
+    audio = colls.last
+
+    assert_equal "http://example.org/audio", audio.attributes["href"]
+
+    title = REXML::XPath.first(audio, "./atom:title", nses)
+    assert_equal "Audio", title.text
+
+    accepts = REXML::XPath.first(audio, "./app:accepts", nses)
+    assert_equal "audio/*", accepts.text
   end
 
   def test_dont_specify_http_object

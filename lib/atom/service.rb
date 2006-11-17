@@ -36,7 +36,7 @@ module Atom
                           "./app:collection",
                           {"app" => Atom::PP_NS} ).each do |col_el|
         # absolutize relative URLs
-        url = base + URI.parse(col_el.attributes["href"])
+        url = base.to_uri + col_el.attributes["href"].to_uri
        
         coll = Atom::Collection.new(url, @http)
 
@@ -53,23 +53,55 @@ module Atom
 
       ws
     end
+
+    def to_element # :nodoc:
+      root = REXML::Element.new "workspace" 
+
+      # damn you, REXML. Damn you and you bizarre handling of namespaces
+      title = self.title.to_element
+      title.name = "atom:title"
+      root << title
+
+      self.collections.each do |coll|
+        el = REXML::Element.new "collection"
+
+        el.attributes["href"] = coll.uri
+
+        title = coll.title.to_element
+        title.name = "atom:title"
+        el << title
+       
+        unless coll.accepts.nil?
+          accepts = REXML::Element.new "accepts"
+          accepts.text = coll.accepts
+          el << accepts
+        end
+
+        root << el
+      end
+
+      root
+    end
   end
 
-
-  # Atom::Service represents an Atom Publishing Protocol service document. Its only child is #workspaces, which is an Array of Atom::Workspace s
+  # Atom::Service represents an Atom Publishing Protocol service
+  # document. Its only child is #workspaces, which is an Array of 
+  # Atom::Workspace s
   class Service < Atom::Element
     element :workspaces, Atom::Multiple(Atom::Workspace)
 
     # retrieves and parses an Atom service document.
-    def initialize(service_url, http = Atom::HTTP.new)
+    def initialize(service_url = "", http = Atom::HTTP.new)
       super("service")
 
-      @url = URI.parse(service_url)
+      return if service_url.empty?
+
+      base = URI.parse(service_url)
       @http = http
 
       rxml = nil
 
-      res = @http.get(@url)
+      res = @http.get(base)
 
       unless res.code == "200" # XXX needs to handle redirects, &c.
         raise WrongResponse, "service document URL responded with unexpected code #{res.code}"
@@ -79,11 +111,11 @@ module Atom
         raise WrongMimetype, "this isn't an atom service document!"
       end
 
-      parse(res.body)
+      parse(res.body, base)
     end
-  
-    private
-    def parse(xml)
+ 
+    # parse a service document, adding its workspaces to this object
+    def parse xml, base = ""
       rxml = if xml.is_a? REXML::Document
         xml.root
       elsif xml.is_a? REXML::Element
@@ -97,8 +129,26 @@ module Atom
       end
 
       REXML::XPath.match( rxml, "/app:service/app:workspace", {"app" => Atom::PP_NS} ).each do |ws_el|
-        self.workspaces << Atom::Workspace.parse(ws_el, @url)
+        self.workspaces << Atom::Workspace.parse(ws_el, base)
       end
+
+      self
+    end
+
+    # serialize to a (namespaced) REXML::Document 
+    def to_xml
+      doc = REXML::Document.new
+      
+      root = REXML::Element.new "service"
+      root.add_namespace Atom::PP_NS
+      root.add_namespace "atom", Atom::NS
+
+      self.workspaces.each do |ws|
+        root << ws.to_element
+      end
+
+      doc << root
+      doc
     end
   end
  
