@@ -81,6 +81,32 @@ END
     assert_equal 1, feed.entries.length
   end
 
+  def test_media_types
+    c = proc do |c_t|
+      @s.mount_proc("/") do |req,res|
+        res.content_type = c_t
+        res.body = @test_feed
+
+        @s.stop
+      end
+      one_shot
+    end
+    
+    feed = Atom::Feed.new "http://localhost:#{@port}/"
+
+    # even if it looks like a feed, the server's word is law
+    c.call("text/plain")
+    assert_raise(Atom::HTTPException) { feed.update! }
+
+    # text/xml isn't the preferred mimetype, but we'll accept it
+    c.call("text/xml")
+    assert_nothing_raised { feed.update! }
+
+    # same goes for application/xml
+    # XXX c.call("application/xml")
+    # assert_nothing_raised { feed.update! }
+  end
+
   def test_conditional_get
     @s.mount_proc("/") do |req,res|
       assert_nil req["If-None-Match"]
@@ -124,5 +150,6 @@ END
     assert_equal 1, feed.entries.length
   end
 
+  # prepares the server for a single request
   def one_shot; Thread.new { @s.start }; end
 end

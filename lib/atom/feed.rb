@@ -174,9 +174,10 @@ module Atom
       elsif res.code != "200"
         raise Atom::HTTPException, "Unexpected HTTP response code: #{res.code}"
       end
-        
-      unless res.content_type.match(/^application\/atom\+xml/)
-        raise Atom::HTTPException, "Unexpected HTTP response Content-Type: #{res.content_type} (wanted application/atom+xml)"
+       
+      media_type = res.content_type.split(";").first
+      unless ["application/atom+xml", "application/xml", "text/xml"].member? media_type
+        raise Atom::HTTPException, "An atom:feed shouldn't have Content-Type: #{res.content_type}"
       end
 
       @etag = res["Etag"] if res["Etag"]
