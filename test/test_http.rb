@@ -1,3 +1,5 @@
+require "test/unit"
+
 require "atom/http"
 require "webrick"
 
@@ -32,11 +34,11 @@ class AtomProtocolTest < Test::Unit::TestCase
 
     one_shot
 
-    res = get_root
+    get_root
     
-    assert_equal("200", res.code)
-    assert_equal("text/plain", res.content_type)
-    assert_equal("just junk", res.body)
+    assert_equal("200", @res.code)
+    assert_equal("text/plain", @res.content_type)
+    assert_equal("just junk", @res.body)
   end
 
   def test_GET_headers
@@ -48,9 +50,9 @@ class AtomProtocolTest < Test::Unit::TestCase
 
     one_shot
 
-    res = get_root("User-Agent" => "tester agent")
+    get_root("User-Agent" => "tester agent")
 
-    assert_equal("200", res.code)
+    assert_equal("200", @res.code)
   end
 
   def test_basic_auth
@@ -76,11 +78,42 @@ class AtomProtocolTest < Test::Unit::TestCase
     
     one_shot
   
-    res = get_root
-    assert_equal("200", res.code)
-    assert_equal("sooper-secret!", res.body)
+    get_root
+    assert_equal("200", @res.code)
+    assert_equal("sooper-secret!", @res.body)
   end
 
-  def get_root(*args); @http.get("http://localhost:#{@port}/", *args); end
+  def test_wsse
+    @s.mount_proc("/") do |req,res|
+      assert_equal 'WSSE profile="UsernameToken"', req["Authorization"]
+
+    
+      auth_type, p = @http.send :parse_wwwauth, req["X-WSSE"]
+
+      assert_equal "test", p["Username"]
+      assert_equal "UsernameToken", auth_type
+
+      # Base64( SHA1( Nonce + CreationTimestamp + Password ) )
+      pd_string = p["Nonce"] + p["CreationTimestamp"] + "password"
+      password_digest = SHA1.digest(pd_string).pack("m")
+
+      assert_equal password_digest, p["PasswordDigest"]
+    end
+
+    one_shot
+
+    # :basic, :digest, :wsse, nil...
+    @http.always_auth = :wsse
+    @http.user = "test"
+    @http.pass = "password"
+    
+    get_root
+ 
+    assert_equal("200", @res.code)
+  end
+
+  def get_root(*args)
+    @res = @http.get("http://localhost:#{@port}/", *args)
+  end
   def one_shot; Thread.new { @s.start }; end
 end
