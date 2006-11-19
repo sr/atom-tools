@@ -25,6 +25,10 @@ module Atom
     # used by the default #when_auth
     attr_accessor :user, :pass
 
+    # XXX doc me
+    # :basic, :wsse, nil
+    attr_accessor :always_auth
+
     def initialize # :nodoc:
       @get_auth_details = lambda do |abs_url, realm|
         if @user and @pass
@@ -57,12 +61,17 @@ module Atom
 
     # a block that will be called when a remote server responds with
     # 401 Unauthorized, so that your application can prompt for
-    # authentication details
+    # authentication details.
     #
-    # it will be called with the base URL of the requested URL, and the realm used in the WWW-Authenticate header.
+    # the default is to use the values of @user and @pass.
+    #
+    # your block will be called with two parameters
+    # abs_url:: the base URL of the request URL
+    # realm:: the realm used in the WWW-Authenticate header 
+    # (will be nil if there is no WWW-Authenticate header)
     # 
     # it should return a value of the form [username, password]
-    def when_auth &block
+    def when_auth &block # :yields: abs_url, realm
       @get_auth_details = block
     end
 
@@ -78,41 +87,65 @@ module Atom
       [ auth_type, auth_params ]
     end
 
-    # performs an authenticated http request
-    def authenticated_request(url_string, method, wwwauth, body = nil, init_headers = {})
+    def wsse_authenticate(req, url, params = {})
+      # from <http://www.koders.com/ruby/fidFB0C7F9A0F36CB0F30B2280BDDC4F43FF1FA4589.aspx?s=ruby+cgi>.
+      # (thanks midore!)
+      user, pass = username_and_password_for_realm(url, params["realm"])
 
-      auth_type, params = parse_wwwauth(wwwauth)
-      req, url = new_request(url_string, method, init_headers)
-      
-      realm = params["realm"]
-      abs_url = (url + "/").to_s
-
-      user, pass = @get_auth_details.call(abs_url, realm)
-    
-      raise Unauthorized unless user and pass
-      
-      if auth_type == "Basic"
-        req.basic_auth user, pass
-      else
-        # TODO: implement Digest auth
-        raise "atom-tools only supports Basic authentication"
-      end
-      
-      res = Net::HTTP.start(url.host, url.port) { |h| h.request(req, body) }
-      
-      raise Unauthorized if res.kind_of? Net::HTTPUnauthorized
-      res
+      nonce = Array.new(10){ rand(0x100000000) }.pack('I*')
+      nonce_base64 = [nonce].pack("m").chomp
+      now = Time.now.utc.iso8601
+      digest = [Digest::SHA1.digest(nonce + now + pass)].pack("m").chomp
+      credentials = sprintf(%Q<UsernameToken Username="%s", PasswordDigest="%s", Nonce="%s", Created="%s">,
+                            user, digest, nonce_base64, now)
+      req['X-WSSE'] = credentials
+      req["Authorization"] = 'WSSE profile="UsernameToken"'
     end
 
-    # performs a regular http request. if it responds 401 
-    # then it retries using @user and @pass for authentication
-    def http_request(url_string, method, body = nil, init_headers = {})
-      req, url = new_request(url_string, method, init_headers)
-      
+    def basic_authenticate(req, url, params = {})
+      user, pass = username_and_password_for_realm(url, params["realm"])
+
+      req.basic_auth user, pass
+    end
+
+    def username_and_password_for_realm(url, realm)
+      abs_url = (url + "/").to_s
+      user, pass = @get_auth_details.call(abs_url, realm)
+
+      unless user and pass
+        raise Unauthorized, "You must provide a username and password"
+      end
+
+      [ user, pass ]
+    end
+
+    # performs a generic HTTP request.
+    def http_request(url_s, method, body = nil, init_headers = {}, www_authenticate = nil)
+      req, url = new_request(url_s, method, init_headers)
+   
+      # two reasons to authenticate;
+      if @always_auth
+        self.send("#{@always_auth}_authenticate", req, url)
+      elsif www_authenticate
+        auth_type, params = parse_wwwauth(www_authenticate)
+        self.send("#{auth_type.downcase}_authenticate", req, url, params)
+      end
+ 
       res = Net::HTTP.start(url.host, url.port) { |h| h.request(req, body) }
 
       if res.kind_of? Net::HTTPUnauthorized
-        res = authenticated_request(url, method, res["WWW-Authenticate"], body, init_headers)
+        if @always_auth
+          raise Unauthorized, "Your username and password were rejected"
+        else
+          # XXX raise if no www-authenticate
+          
+          # once more, with authentication
+          res = http_request(url_s, method, body, init_headers, res["WWW-Authenticate"])
+
+          if res.kind_of? Net::HTTPUnauthorized
+            raise Unauthorized, "Your username and password were rejected"
+          end
+        end
       end
 
       res
