@@ -1,6 +1,8 @@
 require "net/http"
 require 'uri'
 
+require "sha1"
+
 module URI # :nodoc: all
   class Generic; def to_uri; self; end; end
 end

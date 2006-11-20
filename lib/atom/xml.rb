@@ -105,7 +105,7 @@ module REXML # :nodoc: all
         thing.class.attrs.each do |name,req|
           value = elem.ns_attr name.to_s
           if value and name == :href
-            thing[name.to_s] = (URI.parse(top.base) + value).to_s
+            thing[name.to_s] = (top.base.to_uri + value).to_s
           elsif value
             thing[name.to_s] = value
           end
