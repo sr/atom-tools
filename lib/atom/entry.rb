@@ -55,7 +55,10 @@ module Atom
       yield self if block_given?
     end
 
-    # parses XML fetched from +base+ into an Atom::Entry
+    # parses XML into an Atom::Entry
+    # 
+    # +base+ is the absolute URI the document was fetched from 
+    # (if there is one)
     def self.parse xml, base = ""
       if xml.respond_to? :to_atom_entry
         xml.to_atom_entry(base)
