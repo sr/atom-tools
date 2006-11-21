@@ -2,11 +2,54 @@ require "test/unit"
 require "atom/entry"
 
 class ConstructTest < Test::Unit::TestCase
+  def test_text_construct_html_to_xml
+    begin
+      require "hpricot"
+    rescue
+      # hpricot isn't installed, just skip this test
+      puts "skipping hpricot tests"
+      return
+    end
+
+    entry = Atom::Entry.new
+
+html = <<END
+<p>Paragraph 1 contains <a href=http://example.org/>a link
+<p>This really is a horrendous mess.
+END
+
+    entry.content = html
+    entry.content["type"] = "html"
+
+    xhtml = entry.content.xml
+
+    # Hpricot is imperfect; for now I'll just test that it's parseable
+    assert_instance_of Array, xhtml
+    assert_instance_of REXML::Element, xhtml.first
+ 
+=begin
+    assert_equal 2, xhtml.length
+
+    first = xhtml.first
+    assert_equal "p", first.name
+    assert_equal 2, first.children.length
+
+    a = first.children.last
+    assert_equal "a", a.name
+    assert_equal "http://example.org/", a.attributes["href"]
+    assert_equal "a link", a.text
+
+    last = xhtml.last
+    assert_equal "p", last.name
+    assert_equal "This really is a horrendous mess.", last.text
+=end
+  end
+  
   def test_text_construct_text
     entry = Atom::Entry.new
 
-    assert_nil(entry.title)
-    assert_equal("", entry.title.to_s)
+    assert_nil entry.title
+    assert_equal "", entry.title.to_s 
 
     entry.title = "<3"
 

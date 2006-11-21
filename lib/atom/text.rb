@@ -37,14 +37,27 @@ module Atom
       end
     end
 
-    # attepts to parse the content and return it as an array of REXML::Elements
+    # attempts to parse the content of this element as XML and return it
+    # as an array of REXML::Elements.
+    #
+    # If this self["type"] is "html" and Hpricot is installed, it will
+    # be converted to XHTML first.
     def xml
       if self["type"] == "xhtml"
         @content.children
       elsif self["type"] == "text"
         [self.to_s]
+      elsif self["type"] == "html"
+        begin
+          require "hpricot"
+        rescue
+          raise "Turning HTML content into XML requires Hpricot."
+        end
+
+        fixed = Hpricot(self.to_s, :xhtml_strict => true)
+        REXML::Document.new("<div>#{fixed}</div>").root.children
       else
-        # XXX - hpricot goes here?
+        # XXX check that @type is an XML mimetype and parse it
         raise "I haven't implemented this yet"
       end
     end
