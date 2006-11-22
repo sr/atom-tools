@@ -192,7 +192,7 @@ module Atom
       update_el = REXML::XPath.first(coll, "/atom:feed/atom:updated", { "atom" => Atom::NS } )
 
       # the feed hasn't been updated, don't do anything.
-      if update_el and self.updated and self.updated >= Time.parse(update_time.text)
+      if update_el and self.updated and self.updated >= Time.parse(update_el.text)
         return self
       end
 
