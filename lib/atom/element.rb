@@ -49,7 +49,7 @@ module Atom # :nodoc:
 
     # this element's xml:base
     attr_accessor :base
- 
+
     # The following is a DSL for describing an atom element.
 
     # this element's attributes
@@ -193,6 +193,10 @@ module Atom # :nodoc:
       to_xml.to_s
     end
     
+    def base= uri # :nodoc:
+      @base = uri.to_s
+    end
+ 
     private
 
     # like +valid_key?+ but raises on failure

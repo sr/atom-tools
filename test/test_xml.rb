@@ -287,6 +287,20 @@ END
     assert_equal "", entry.content.to_s
   end
 
+  def test_serialize_base
+    entry = Atom::Entry.new
+
+    entry.base = "http://necronomicorp.com/nil"
+  
+    base = get_elements(entry).root.attributes["xml:base"]
+    assert_equal "http://necronomicorp.com/nil", base
+
+    entry.base = URI.parse("http://necronomicorp.com/nil")
+
+    base = get_elements(entry).root.attributes["xml:base"]
+    assert_equal "http://necronomicorp.com/nil", base
+  end
+
   def test_relative_base
     base_url = "http://www.tbray.org/ongoing/ongoing.atom"
     doc = "<entry xmlns='http://www.w3.org/2005/Atom' xml:base='When/200x/2006/10/11/'/>"
