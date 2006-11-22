@@ -73,7 +73,9 @@ module Atom
       "#<Atom::Entry id:'#{self.id}'>"
     end
 
-    # declare that this entry has updated
+    # declare that this entry has updated.
+    #
+    # (note that this is different from Atom::Feed#update!)
     def updated!
       self.updated = Time.now
     end

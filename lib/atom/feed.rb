@@ -157,6 +157,8 @@ module Atom
 
     # fetches this feed's URL, parses the result and #merge!s
     # changes, new entries, &c.
+    #
+    # (note that this is different from Atom::Entry#updated!
     def update!
       raise(RuntimeError, "can't fetch without a uri.") unless @uri
      

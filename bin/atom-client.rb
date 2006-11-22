@@ -44,7 +44,7 @@ class Atom::Entry
   def prepare_for_output
     filter_hook
 
-    update!
+    updated!
   end
 
   def filter_hook
