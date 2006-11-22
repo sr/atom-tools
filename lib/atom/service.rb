@@ -19,7 +19,7 @@ module Atom
     element :collections, Atom::Multiple(Atom::Collection)
     element :title, Atom::Text
 
-    def self.parse(xml, base = "") # :nodoc:
+    def self.parse(xml, base = "", http = Atom::HTTP.new) # :nodoc:
       ws = Atom::Workspace.new("workspace")
 
       rxml = if xml.is_a? REXML::Document
@@ -38,7 +38,7 @@ module Atom
         # absolutize relative URLs
         url = base.to_uri + col_el.attributes["href"].to_uri
        
-        coll = Atom::Collection.new(url, @http)
+        coll = Atom::Collection.new(url, http)
 
         # XXX this is a Text Construct, and should be parsed as such
         col_el.fill_text_construct(coll, "title")
@@ -93,11 +93,12 @@ module Atom
     # retrieves and parses an Atom service document.
     def initialize(service_url = "", http = Atom::HTTP.new)
       super("service")
+      
+      @http = http
 
       return if service_url.empty?
 
       base = URI.parse(service_url)
-      @http = http
 
       rxml = nil
 
@@ -129,7 +130,7 @@ module Atom
       end
 
       REXML::XPath.match( rxml, "/app:service/app:workspace", {"app" => Atom::PP_NS} ).each do |ws_el|
-        self.workspaces << Atom::Workspace.parse(ws_el, base)
+        self.workspaces << Atom::Workspace.parse(ws_el, base, @http)
       end
 
       self

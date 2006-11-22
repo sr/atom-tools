@@ -55,6 +55,12 @@ END
     assert_equal "Photos", coll.title.to_s 
     assert_equal "image/*", coll.accepts 
 
+    http = service.instance_variable_get(:@http)
+    assert_instance_of Atom::HTTP, http
+
+    # collections should inherit the service's HTTP object
+    assert_equal http, coll.instance_variable_get(:@http)
+
     # XXX write a test for relative hrefs
   end
 
