@@ -5,6 +5,11 @@ require "webrick"
 require "sha1"
 
 class AtomProtocolTest < Test::Unit::TestCase
+  REALM = "test authentication"
+  USER = "test_user"
+  PASS = "aoeuaoeu"
+  SECRET_DATA = "I kissed a boy once"
+
   def setup
     @http = Atom::HTTP.new
     @port = rand(1024) + 1024
@@ -14,13 +19,21 @@ class AtomProtocolTest < Test::Unit::TestCase
   end
 
   def test_parse_wwwauth
-    header = 'Basic realm="SokEvo"'
+    header = 'realm="SokEvo"'
    
-    # parse_wwwauth is a private method
-    auth_type, auth_params = @http.send :parse_wwwauth, header
+    params = @http.send :parse_quoted_wwwauth, header
+    assert_equal "SokEvo", params[:realm]
 
-    assert_equal "Basic", auth_type
-    assert_equal "SokEvo", auth_params["realm"]
+    header = 'opaque="07UrfUiCYac5BbWJ", algorithm=MD5-sess, qop="auth", stale=TRUE, nonce="MDAx0Mzk", realm="test authentication"'
+
+    params = @http.send :parse_wwwauth_digest, header
+
+    assert_equal "test authentication", params[:realm]
+    assert_equal "MDAx0Mzk", params[:nonce]
+    assert_equal true, params[:stale]
+    assert_equal "auth", params[:qop]
+    assert_equal "MD5-sess", params[:algorithm]
+    assert_equal "07UrfUiCYac5BbWJ", params[:opaque]
   end
 
   def test_GET
@@ -58,60 +71,109 @@ class AtomProtocolTest < Test::Unit::TestCase
 
   def test_basic_auth
     @s.mount_proc("/") do |req,res|
-      WEBrick::HTTPAuth.basic_auth(req, res, "test authentication") do |u,p|
-        u == "test" and p == "pass"
+      WEBrick::HTTPAuth.basic_auth(req, res, REALM) do |u,p|
+        u == USER and p == PASS
       end
 
-      res.body = "sooper-secret!"
+      res.body = SECRET_DATA
       @s.stop
     end
 
     one_shot
-    
+   
+    # with no credentials
+    assert_raises(Atom::Unauthorized) { get_root }
+
+    @http.user = USER
+    @http.pass = "incorrect_password"
+
+    # with incorrect credentials
     assert_raises(Atom::Unauthorized) { get_root }
 
     @http.when_auth do |abs_url,realm|
       assert_equal "http://localhost:#{@port}/", abs_url 
-      assert_equal "test authentication", realm
+      assert_equal REALM, realm
 
-      ["test", "pass"]
+      [USER, PASS]
     end
     
     one_shot
   
     get_root
-    assert_equal("200", @res.code)
-    assert_equal("sooper-secret!", @res.body)
+    assert_equal "200", @res.code 
+    assert_equal SECRET_DATA, @res.body 
   end
 
-  def test_wsse
+  def test_digest_auth
+    # a dummy userdb 
+    userdb = {}
+    userdb[USER] = PASS
+
+    def userdb.get_passwd(realm, user, reload)
+      assert_equal REALM, realm
+      assert_equal USER, user
+      Digest::MD5::hexdigest([user, realm, self["user"]].join(":"))
+    end
+      
+    authenticator = WEBrick::HTTPAuth::DigestAuth.new(
+      :UserDB => userdb,
+      :Realm => REALM
+    )
+
+    @s.mount_proc("/") do |req,res|
+      authenticator.authenticate(req, res)
+      res.body = SECRET_DATA
+    end
+   
+    one_shot
+
+    # no credentials
+    assert_raises(Atom::Unauthorized) { get_root }
+    
+    @http.user = USER
+    @http.pass = PASS
+
+    # correct credentials
+    res = get_root
+    assert_equal SECRET_DATA, res.body
+
+    @s.stop
+  end
+
+  def test_wsse_auth
     @s.mount_proc("/") do |req,res|
       assert_equal 'WSSE profile="UsernameToken"', req["Authorization"]
 
-      auth_type, p = @http.send :parse_wwwauth, req["X-WSSE"]
+      xwsse = req["X-WSSE"]
 
-      assert_equal "test", p["Username"]
-      assert_equal "UsernameToken", auth_type
+      p = @http.send :parse_quoted_wwwauth, xwsse
+
+      assert_equal USER, p[:Username]
+      assert_match /^UsernameToken /, xwsse
 
       # un-base64 in preparation for SHA1-ing
-      nonce = p["Nonce"].unpack("m").first
+      nonce = p[:Nonce].unpack("m").first
 
       # Base64( SHA1( Nonce + CreationTimestamp + Password ) )
-      pd_string = nonce + p["Created"] + "password"
+      pd_string = nonce + p[:Created] + PASS
       password_digest = [Digest::SHA1.digest(pd_string)].pack("m").chomp
 
-      assert_equal password_digest, p["PasswordDigest"]
+      assert_equal password_digest, p[:PasswordDigest]
+
+      res.body = SECRET_DATA
+      @s.stop
     end
 
     one_shot
 
     @http.always_auth = :wsse
-    @http.user = "test"
-    @http.pass = "password"
+    @http.user = USER
+    @http.pass = PASS
     
     get_root
 
-    assert_equal("200", @res.code)
+    assert_equal "200", @res.code 
+    assert_equal SECRET_DATA, @res.body
   end
 
   def get_root(*args)

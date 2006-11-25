@@ -13,6 +13,70 @@ end
 
 module Atom
   UA = "atom-tools 0.9.0"
+
+  module DigestAuth
+    # parses quoted-strings plus a few special cases for Digest
+    def parse_wwwauth_digest param_string
+      params = parse_quoted_wwwauth param_string
+      qop = params[:qop] ? params[:qop].split(",") : nil
+
+      param_string.gsub(/stale=([^,]*)/) do
+        params[:stale] = ($1.downcase == "true")
+      end
+
+      params[:algorithm] = "MD5"
+      param_string.gsub(/algorithm=([^,]*)/) { params[:algorithm] = $1 }
+
+      params
+    end
+
+    # HTTP Digest authentication (RFC 2617)
+    def digest_authenticate(req, url, param_string = "")
+      raise "Digest authentication requires a WWW-Authenticate header" if param_string.empty?
+
+      params = parse_wwwauth_digest(param_string)
+
+      if params[:algorithm] and not params[:algorithm] == "MD5"
+        # XXX MD5-sess
+        raise "I only support MD5 digest authentication (not #{params[:algorithm].inspect})"
+      end
+
+      user, pass = username_and_password_for_realm(url, params[:realm])
+
+      h = lambda { |data| Digest::MD5.hexdigest(data) }
+      kd = lambda { |secret,data| h[secret + ":" + data] }
+
+      a1 = user + ":" + realm + ":" + pass
+
+      if qop.nil? or qop.member? "auth"
+        a2 = req.method + ":" + url.to_s
+      else
+        # XXX auth-int
+        raise "only 'auth' qop supported (none of: #{qop.inspect})"
+      end
+
+      if qop.nil?
+        response = kd[h[a1], nonce + ":" + h[a2]]
+      else
+        nonce_count = "00000001" # hex
+        cnonce = "a"
+    
+        data = "#{nonce}:#{nonce_count}:#{cnonce}:#{"auth"}:#{h[a2]}"
+
+        response = kd[h[a1], data]
+      end
+
+      h = %Q<Digest username="#{user}" opaque="#{opaque}" uri="#{url}" realm="#{realm}" response="#{response}" nonce="#{nonce}">
+      
+      h += %Q< algorithm=#{algo}> if algo and not algo == "MD5"
+      if qop
+        h += %Q< nc=#{nonce_count} cnonce="#{cnonce}">
+      end
+
+      req["Authorization"] = h
+    end
+  end
+
   class Unauthorized < RuntimeError # :nodoc:
   end
 
@@ -24,6 +88,8 @@ module Atom
   # 
   # All its HTTP methods return a Net::HTTPResponse
   class HTTP
+    include DigestAuth
+
     # used by the default #when_auth
     attr_accessor :user, :pass
 
@@ -78,17 +144,25 @@ module Atom
     end
 
     private
-    def parse_wwwauth www_authenticate
-      auth_type = www_authenticate.split[0] # "Digest" or "Basic"
-      auth_params = {}
-      
-      www_authenticate =~ /^(\w+) (.*)/
+    # parses plain quoted-strings
+    def parse_quoted_wwwauth param_string
+      params = {}
 
-      $2.gsub(/(\w+)="(.*?)"/) { auth_params[$1] = $2 }
+      param_string.gsub(/(\w+)="(.*?)"/) { params[$1.to_sym] = $2 }
 
-      [ auth_type, auth_params ]
+      params
     end
 
+    # HTTP Basic authentication (RFC 2617)
+    def basic_authenticate(req, url, param_string = "")
+      params = parse_quoted_wwwauth(param_string)
+
+      user, pass = username_and_password_for_realm(url, params[:realm])
+
+      req.basic_auth user, pass
+    end
+
+    # WSSE authentication <http://www.xml.com/pub/a/2003/12/17/dive.html>
     def wsse_authenticate(req, url, params = {})
       # from <http://www.koders.com/ruby/fidFB0C7F9A0F36CB0F30B2280BDDC4F43FF1FA4589.aspx?s=ruby+cgi>.
       # (thanks midore!)
@@ -102,12 +176,6 @@ module Atom
                             user, digest, nonce_base64, now)
       req['X-WSSE'] = credentials
       req["Authorization"] = 'WSSE profile="UsernameToken"'
-    end
-
-    def basic_authenticate(req, url, params = {})
-      user, pass = username_and_password_for_realm(url, params["realm"])
-
-      req.basic_auth user, pass
     end
 
     def username_and_password_for_realm(url, realm)
@@ -129,18 +197,19 @@ module Atom
       if @always_auth
         self.send("#{@always_auth}_authenticate", req, url)
       elsif www_authenticate
-        auth_type, params = parse_wwwauth(www_authenticate)
-        self.send("#{auth_type.downcase}_authenticate", req, url, params)
+        # XXX multiple challenges, multiple headers
+        param_string = www_authenticate.sub!(/^(\w+) /, "")
+        auth_type = $~[1]
+        self.send("#{auth_type.downcase}_authenticate", req, url, param_string)
       end
  
       res = Net::HTTP.start(url.host, url.port) { |h| h.request(req, body) }
 
       if res.kind_of? Net::HTTPUnauthorized
-        if @always_auth
+        if @always_auth or www_authenticate # XXX and not stale (Digest only) 
+          # we've tried the credentials you gave us once and failed
           raise Unauthorized, "Your username and password were rejected"
         else
-          # XXX raise if no www-authenticate
-          
           # once more, with authentication
           res = http_request(url_s, method, body, init_headers, res["WWW-Authenticate"])
 

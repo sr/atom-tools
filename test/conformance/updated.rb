@@ -4,7 +4,7 @@ require "atom/feed"
 # wiki page at <http://www.intertwingly.net/wiki/pie/UpdatedConformanceTests>
 # test feed at <http://intertwingly.net/testcase/updated.atom>
 
-class TestConformanceUpdated < Test::Unit::TestCase
+class TestUpdatedConformance < Test::Unit::TestCase
   def test_it_all
     feed = Atom::Feed.new "http://intertwingly.net/testcase/updated.atom"
 
@@ -16,7 +16,8 @@ class TestConformanceUpdated < Test::Unit::TestCase
   
     # this is an insignificant change, 
     # (ie. atom:updated_1 == atom:updated_2),
-    # but that's for you to handle
+    #
+    # the update is applied, your application can handle that however it wants.
     feed.update!
     assert_equal "12 of 13 miner<b>s</b> survive mine collapse", feed.entries.first.content.to_s.strip
    
