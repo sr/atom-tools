@@ -2,6 +2,7 @@ require "net/http"
 require 'uri'
 
 require "sha1"
+require "md5"
 
 module URI # :nodoc: all
   class Generic; def to_uri; self; end; end
@@ -15,7 +16,11 @@ module Atom
   UA = "atom-tools 0.9.0"
 
   module DigestAuth
-    # parses quoted-strings plus a few special cases for Digest
+    CNONCE = Digest::MD5.new("%x" % (Time.now.to_i + rand(65535))).hexdigest
+
+    @@nonce_count = -1
+
+    # quoted-strings plus a few special cases for Digest
     def parse_wwwauth_digest param_string
       params = parse_quoted_wwwauth param_string
       qop = params[:qop] ? params[:qop].split(",") : nil
@@ -30,50 +35,56 @@ module Atom
       params
     end
 
+    def h(data); Digest::MD5.hexdigest(data); end
+    def kd(secret, data); h(secret + ":" + data); end
+
     # HTTP Digest authentication (RFC 2617)
     def digest_authenticate(req, url, param_string = "")
       raise "Digest authentication requires a WWW-Authenticate header" if param_string.empty?
 
       params = parse_wwwauth_digest(param_string)
+      qop = params[:qop]
 
-      if params[:algorithm] and not params[:algorithm] == "MD5"
+      user, pass = username_and_password_for_realm(url, params[:realm])
+
+      if params[:algorithm] == "MD5"
+        a1 = user + ":" + params[:realm] + ":" + pass
+      else
         # XXX MD5-sess
         raise "I only support MD5 digest authentication (not #{params[:algorithm].inspect})"
       end
 
-      user, pass = username_and_password_for_realm(url, params[:realm])
-
-      h = lambda { |data| Digest::MD5.hexdigest(data) }
-      kd = lambda { |secret,data| h[secret + ":" + data] }
-
-      a1 = user + ":" + realm + ":" + pass
-
       if qop.nil? or qop.member? "auth"
-        a2 = req.method + ":" + url.to_s
+        a2 = req.method + ":" + req.path
       else
         # XXX auth-int
         raise "only 'auth' qop supported (none of: #{qop.inspect})"
       end
 
       if qop.nil?
-        response = kd[h[a1], nonce + ":" + h[a2]]
+        response = kd(h(a1), params[:nonce] + ":" + h(a2))
       else
-        nonce_count = "00000001" # hex
-        cnonce = "a"
+        @@nonce_count += 1
+        nc = ('%08x' % @@nonce_count) 
+   
+        # XXX auth-int
+        data = "#{params[:nonce]}:#{nc}:#{CNONCE}:#{"auth"}:#{h(a2)}"
+
+        response = kd(h(a1), data)
+      end
+
+      header = %Q<Digest username="#{user}", opaque="#{params[:opaque]}", uri="#{req.path}", realm="#{params[:realm]}", response="#{response}", nonce="#{params[:nonce]}">
     
-        data = "#{nonce}:#{nonce_count}:#{cnonce}:#{"auth"}:#{h[a2]}"
-
-        response = kd[h[a1], data]
+      if params[:algorithm] != "MD5"
+        header += ", algorithm=#{algo}"
       end
 
-      h = %Q<Digest username="#{user}" opaque="#{opaque}" uri="#{url}" realm="#{realm}" response="#{response}" nonce="#{nonce}">
-      
-      h += %Q< algorithm=#{algo}> if algo and not algo == "MD5"
       if qop
-        h += %Q< nc=#{nonce_count} cnonce="#{cnonce}">
+        # XXX auth-int
+        header += %Q<, nc=#{nc}, cnonce="#{CNONCE}", qop=auth>
       end
 
-      req["Authorization"] = h
+      req["Authorization"] = header
     end
   end
 

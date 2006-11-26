@@ -2,7 +2,6 @@ require "test/unit"
 
 require "atom/http"
 require "webrick"
-require "sha1"
 
 class AtomProtocolTest < Test::Unit::TestCase
   REALM = "test authentication"
@@ -110,14 +109,13 @@ class AtomProtocolTest < Test::Unit::TestCase
     userdb[USER] = PASS
 
     def userdb.get_passwd(realm, user, reload)
-      assert_equal REALM, realm
-      assert_equal USER, user
-      Digest::MD5::hexdigest([user, realm, self["user"]].join(":"))
+      Digest::MD5::hexdigest([user, realm, self[user]].join(":"))
     end
       
     authenticator = WEBrick::HTTPAuth::DigestAuth.new(
       :UserDB => userdb,
-      :Realm => REALM
+      :Realm => REALM,
+      :Algorithm => "MD5"
     )
 
     @s.mount_proc("/") do |req,res|
@@ -129,7 +127,7 @@ class AtomProtocolTest < Test::Unit::TestCase
 
     # no credentials
     assert_raises(Atom::Unauthorized) { get_root }
-    
+
     @http.user = USER
     @http.pass = PASS
 
