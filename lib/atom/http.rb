@@ -73,8 +73,12 @@ module Atom
         response = kd(h(a1), data)
       end
 
-      header = %Q<Digest username="#{user}", opaque="#{params[:opaque]}", uri="#{req.path}", realm="#{params[:realm]}", response="#{response}", nonce="#{params[:nonce]}">
-    
+      header = %Q<Digest username="#{user}", uri="#{req.path}", realm="#{params[:realm]}", response="#{response}", nonce="#{params[:nonce]}">
+   
+      if params[:opaque]
+        header += %Q<, opaque="#{params[:opaque]}">
+      end
+
       if params[:algorithm] != "MD5"
         header += ", algorithm=#{algo}"
       end
