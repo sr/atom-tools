@@ -13,7 +13,7 @@ class String # :nodoc:
 end
 
 module Atom
-  UA = "atom-tools 0.9.0"
+  UA = "atom-tools 0.9.1"
 
   module DigestAuth
     CNONCE = Digest::MD5.new("%x" % (Time.now.to_i + rand(65535))).hexdigest
@@ -92,7 +92,11 @@ module Atom
     end
   end
 
-  class Unauthorized < RuntimeError # :nodoc:
+  class HTTPException < RuntimeError # :nodoc:
+  end
+  class Unauthorized < Atom::HTTPException  # :nodoc:
+  end
+  class WrongMimetype < Atom::HTTPException # :nodoc:
   end
 
   # An object which handles the details of HTTP - particularly
@@ -234,6 +238,9 @@ module Atom
         end
       end
 
+      # a bit of added convenience
+      res.extend Atom::HTTPResponse
+
       res
     end
     
@@ -246,6 +253,19 @@ module Atom
       rel += "?" + url.query if url.query
 
       [method.new(rel, headers), url]
+    end
+  end
+
+  module HTTPResponse
+    # this should probably support ranges (eg. text/*)
+    def validate_content_type( valid )
+      raise Atom::HTTPException, "HTTP response contains no Content-Type!" unless self.content_type
+
+      media_type = self.content_type.split(";").first
+
+      unless valid.member? media_type.downcase
+        raise Atom::WrongMimetype, "unexpected response Content-Type: #{media_type.inspect}. should be one of: #{valid.inspect}"
+      end
     end
   end
 end

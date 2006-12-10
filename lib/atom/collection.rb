@@ -57,7 +57,11 @@ module Atom
     def get_atom_entry(url)
       res = get(url)
 
-      if res.code != "200" or res.content_type != "application/atom+xml"
+      # be picky for atom:entrys
+      res.validate_content_type( [ "application/atom+xml" ] )
+
+      # XXX handle other HTTP codes
+      if res.code != "200"
         raise Atom::HTTPException, "expected Atom::Entry, didn't get it"
       end
 

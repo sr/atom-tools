@@ -9,8 +9,6 @@ module Atom
   
   class WrongNamespace < RuntimeError #:nodoc:
   end
-  class WrongMimetype < RuntimeError # :nodoc:
-  end
   class WrongResponse < RuntimeError # :nodoc:
   end
 
@@ -103,13 +101,10 @@ module Atom
       rxml = nil
 
       res = @http.get(base)
+      res.validate_content_type(["application/atomserv+xml"])
 
       unless res.code == "200" # XXX needs to handle redirects, &c.
         raise WrongResponse, "service document URL responded with unexpected code #{res.code}"
-      end
-
-      unless res.content_type == "application/atomserv+xml"
-        raise WrongMimetype, "this isn't an atom service document!"
       end
 
       parse(res.body, base)

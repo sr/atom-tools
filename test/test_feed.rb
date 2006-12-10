@@ -89,6 +89,9 @@ END
 
         @s.stop
       end
+      # there's some kind of race condition here that will result in a
+      # timeout sometimes. this is a dirty fix.
+      sleep 0.5
       one_shot
     end
     
@@ -96,15 +99,32 @@ END
 
     # even if it looks like a feed, the server's word is law
     c.call("text/plain")
-    assert_raise(Atom::HTTPException) { feed.update! }
+    assert_raise(Atom::WrongMimetype) { feed.update! }
+
+    # a parameter shouldn't change the type
+    c.call("application/atom+xml;type=feed")
+    assert_nothing_raised { feed.update! }
+
+    # type and subtype are case insensitive (param. attribute names too)
+    c.call("ApPliCatIon/ATOM+XML")
+    assert_nothing_raised { feed.update! }
 
     # text/xml isn't the preferred mimetype, but we'll accept it
     c.call("text/xml")
     assert_nothing_raised { feed.update! }
 
     # same goes for application/xml
-    # XXX c.call("application/xml")
-    # assert_nothing_raised { feed.update! }
+    c.call("application/xml")
+    assert_nothing_raised { feed.update! }
+
+    # nil content type
+    @s.mount_proc("/") do |req,res|
+      res.body = @test_feed
+
+      @s.stop
+    end
+    one_shot
+    assert_raises(Atom::HTTPException) { feed.update! }
   end
 
   def test_conditional_get
@@ -139,7 +159,8 @@ END
       assert_equal 'Wed, 15 Nov 1995 04:58:08 GMT', req["If-Modified-Since"]
 
       res.status = 304
-      res.body = "this hasn't been modified"
+      res.content_type = "application/atom+xml"
+      res.body = @test_feed
       
       @s.stop
     end

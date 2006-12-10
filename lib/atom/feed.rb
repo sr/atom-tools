@@ -5,8 +5,6 @@ require "atom/entry"
 require "atom/http"
 
 module Atom
-  class HTTPException < RuntimeError # :nodoc:
-  end
   class FeedGone < RuntimeError # :nodoc:
   end
 
@@ -168,6 +166,11 @@ module Atom
 
       res = @http.get(@uri, headers)
 
+      # we'll be forgiving about feed content types.
+      res.validate_content_type(["application/atom+xml", 
+                                  "application/xml", 
+                                  "text/xml"])
+
       if res.code == "304"
         # we're already all up to date
         return self
@@ -177,11 +180,6 @@ module Atom
         raise Atom::HTTPException, "Unexpected HTTP response code: #{res.code}"
       end
        
-      media_type = res.content_type.split(";").first
-      unless ["application/atom+xml", "application/xml", "text/xml"].member? media_type
-        raise Atom::HTTPException, "An atom:feed shouldn't have Content-Type: #{res.content_type}"
-      end
-
       @etag = res["Etag"] if res["Etag"]
       @last_modified = res["Last-Modified"] if res["Last-Modified"]
 
