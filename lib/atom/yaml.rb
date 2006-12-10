@@ -50,7 +50,7 @@ module Atom
       end
     end
     def to_yaml_style # :nodoc:
-      if @content.match("\n")
+      if @content.to_s.match("\n")
         :fold
       else
         :plain
