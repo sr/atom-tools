@@ -8,6 +8,9 @@ class AtomHTTPTest < Test::Unit::TestCase
   USER = "test_user"
   PASS = "aoeuaoeu"
 
+  # for Google AuthSub authentication
+  TOKEN = "pq7266382__838"
+
   SECRET_DATA = "I kissed a boy once"
 
   def setup
@@ -43,14 +46,14 @@ class AtomHTTPTest < Test::Unit::TestCase
       assert_equal("/", req.path)
 
       res.content_type = "text/plain"
-      res.body = "just junk"
+      res.body = "Success!"
     end
 
     get_root
     
     assert_equal "200", @res.code 
     assert_equal "text/plain", @res.content_type 
-    assert_equal "just junk", @res.body 
+    assert_equal "Success!", @res.body 
   end
 
   def test_GET_headers
@@ -61,6 +64,46 @@ class AtomHTTPTest < Test::Unit::TestCase
     get_root("User-Agent" => "tester agent")
 
     assert_equal "200", @res.code 
+  end
+
+  def test_redirect
+    @s.mount_proc("/") do |req,res|
+      res.status = 302
+      res["Location"] = "http://localhost:#{@port}/redirected"
+      
+      res.body = "ignore me."
+    end
+
+    @s.mount_proc("/redirected") do |req,res|
+      res.content_type = "text/plain"
+      res.body = "Success!"
+
+      @s.stop
+    end
+
+    one_shot; get_root
+
+    # the redirect should be transparent (to whatever extent it can be)
+    assert_equal "200", @res.code
+    assert_equal "Success!", @res.body
+  end
+
+  def test_redirect_loop
+    @s.mount_proc("/") do |req,res|
+      res.status = 302
+      res["Location"] = "http://localhost:#{@port}/redirected"
+    end
+
+    @s.mount_proc("/redirected") do |req,res|
+      res.status = 302
+      res["Location"] = "http://localhost:#{@port}/"
+    end
+
+    one_shot
+    
+    assert_raises(Atom::HTTPException) { get_root }
+
+    @s.stop
   end
 
   def test_basic_auth
@@ -161,6 +204,20 @@ class AtomHTTPTest < Test::Unit::TestCase
 
     assert_authenticates
   end
+
+  def test_authsub_auth
+    mount_one_shot do |req,res|
+      assert_equal %{AuthSub token="#{TOKEN}"}, req["Authorization"]
+
+      res.body = SECRET_DATA
+    end
+
+    @http.always_auth = :authsub
+    @http.token = TOKEN
+
+    assert_authenticates
+  end
+
 
   # mount a block on the test server, shutting the server down after a
   # single request

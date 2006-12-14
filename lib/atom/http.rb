@@ -112,8 +112,20 @@ module Atom
     # used by the default #when_auth
     attr_accessor :user, :pass
 
-    # XXX doc me
-    # :basic, :wsse, nil
+    # the token used by Google's AuthSub authentication
+    attr_accessor :token
+
+    # when set to :basic, :wsse or :authsub, this will send an 
+    # Authentication header with every request instead of waiting for a 
+    # challenge from the server. 
+    # 
+    # be careful; always_auth :basic will send your username and
+    # password in plain text to every URL this object requests.
+    #
+    # :digest won't work, since Digest authentication requires an 
+    # initial challenge to generate a response
+    #
+    # default is nil, which 
     attr_accessor :always_auth
 
     def initialize # :nodoc:
@@ -197,6 +209,10 @@ module Atom
       req["Authorization"] = 'WSSE profile="UsernameToken"'
     end
 
+    def authsub_authenticate req, url
+      req["Authorization"] = %{AuthSub token="#{@token}"}
+    end
+
     def username_and_password_for_realm(url, realm)
       abs_url = (url + "/").to_s
       user, pass = @get_auth_details.call(abs_url, realm)
@@ -209,7 +225,7 @@ module Atom
     end
 
     # performs a generic HTTP request.
-    def http_request(url_s, method, body = nil, init_headers = {}, www_authenticate = nil)
+    def http_request(url_s, method, body = nil, init_headers = {}, www_authenticate = nil, redirect_limit = 5)
       req, url = new_request(url_s, method, init_headers)
    
       # two reasons to authenticate;
@@ -224,17 +240,24 @@ module Atom
  
       res = Net::HTTP.start(url.host, url.port) { |h| h.request(req, body) }
 
-      if res.kind_of? Net::HTTPUnauthorized
+      case res
+      when Net::HTTPUnauthorized
         if @always_auth or www_authenticate # XXX and not stale (Digest only) 
           # we've tried the credentials you gave us once and failed
-          raise Unauthorized, "Your username and password were rejected"
+          raise Unauthorized, "Your authorization was rejected"
         else
           # once more, with authentication
           res = http_request(url_s, method, body, init_headers, res["WWW-Authenticate"])
 
           if res.kind_of? Net::HTTPUnauthorized
-            raise Unauthorized, "Your username and password were rejected"
+            raise Unauthorized, "Your authorization was rejected"
           end
+        end
+      when Net::HTTPRedirection
+        if res["Location"] and [Net::HTTP::Get, Net::HTTP::Head].member? method
+          raise HTTPException, "Too many redirects" if redirect_limit.zero?
+
+          res = http_request res["Location"], method, nil, init_headers, nil, (redirect_limit - 1)
         end
       end
 
