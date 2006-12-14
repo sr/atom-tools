@@ -193,19 +193,18 @@ module Atom
       req.basic_auth user, pass
     end
 
-    # WSSE authentication <http://www.xml.com/pub/a/2003/12/17/dive.html>
+    # WSSE authentication 
+    #   <http://www.xml.com/pub/a/2003/12/17/dive.html>
     def wsse_authenticate(req, url, params = {})
-      # from <http://www.koders.com/ruby/fidFB0C7F9A0F36CB0F30B2280BDDC4F43FF1FA4589.aspx?s=ruby+cgi>.
-      # (thanks midore!)
       user, pass = username_and_password_for_realm(url, params["realm"])
 
       nonce = Array.new(10){ rand(0x100000000) }.pack('I*')
-      nonce_base64 = [nonce].pack("m").chomp
-      now = Time.now.utc.iso8601
+      nonce_b64 = [nonce].pack("m").chomp
+
+      now = Time.now.iso8601
       digest = [Digest::SHA1.digest(nonce + now + pass)].pack("m").chomp
-      credentials = sprintf(%Q<UsernameToken Username="%s", PasswordDigest="%s", Nonce="%s", Created="%s">,
-                            user, digest, nonce_base64, now)
-      req['X-WSSE'] = credentials
+      
+      req['X-WSSE'] = %Q<UsernameToken Username="#{user}", PasswordDigest="#{digest}", Nonce="#{nonce_b64}", Created="#{now}">
       req["Authorization"] = 'WSSE profile="UsernameToken"'
     end
 
