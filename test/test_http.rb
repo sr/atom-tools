@@ -3,10 +3,11 @@ require "test/unit"
 require "atom/http"
 require "webrick"
 
-class AtomProtocolTest < Test::Unit::TestCase
+class AtomHTTPTest < Test::Unit::TestCase
   REALM = "test authentication"
   USER = "test_user"
   PASS = "aoeuaoeu"
+
   SECRET_DATA = "I kissed a boy once"
 
   def setup
@@ -18,11 +19,13 @@ class AtomProtocolTest < Test::Unit::TestCase
   end
 
   def test_parse_wwwauth
+    # a Basic WWW-Authenticate
     header = 'realm="SokEvo"'
    
     params = @http.send :parse_quoted_wwwauth, header
     assert_equal "SokEvo", params[:realm]
 
+    # Digest is parsed a bit differently
     header = 'opaque="07UrfUiCYac5BbWJ", algorithm=MD5-sess, qop="auth", stale=TRUE, nonce="MDAx0Mzk", realm="test authentication"'
 
     params = @http.send :parse_wwwauth_digest, header
@@ -36,57 +39,48 @@ class AtomProtocolTest < Test::Unit::TestCase
   end
 
   def test_GET
-    @s.mount_proc("/") do |req,res|
+    mount_one_shot do |req,res|
       assert_equal("/", req.path)
 
       res.content_type = "text/plain"
       res.body = "just junk"
-
-      @s.stop
     end
-
-    one_shot
 
     get_root
     
-    assert_equal("200", @res.code)
-    assert_equal("text/plain", @res.content_type)
-    assert_equal("just junk", @res.body)
+    assert_equal "200", @res.code 
+    assert_equal "text/plain", @res.content_type 
+    assert_equal "just junk", @res.body 
   end
 
   def test_GET_headers
-    @s.mount_proc("/") do |req,res|
+    mount_one_shot do |req,res|
       assert_equal("tester agent", req["User-Agent"])
-      
-      @s.stop
     end
-
-    one_shot
 
     get_root("User-Agent" => "tester agent")
 
-    assert_equal("200", @res.code)
+    assert_equal "200", @res.code 
   end
 
   def test_basic_auth
-    @s.mount_proc("/") do |req,res|
+    mount_one_shot do |req,res|
       WEBrick::HTTPAuth.basic_auth(req, res, REALM) do |u,p|
         u == USER and p == PASS
       end
 
       res.body = SECRET_DATA
-      @s.stop
     end
 
-    one_shot
-   
-    # with no credentials
+    # no credentials
     assert_raises(Atom::Unauthorized) { get_root }
 
     @http.user = USER
     @http.pass = "incorrect_password"
 
-    # with incorrect credentials
+    one_shot
+
+    # incorrect credentials
     assert_raises(Atom::Unauthorized) { get_root }
 
     @http.when_auth do |abs_url,realm|
@@ -95,19 +89,20 @@ class AtomProtocolTest < Test::Unit::TestCase
 
       [USER, PASS]
     end
-    
+   
     one_shot
-  
-    get_root
-    assert_equal "200", @res.code 
-    assert_equal SECRET_DATA, @res.body 
+    
+    # correct credentials
+    assert_authenticates
   end
 
   def test_digest_auth
-    # a dummy userdb 
+    # a dummy userdb (saves me creating a file)
     userdb = {}
+    # with a single entry
     userdb[USER] = PASS
 
+    # HTTPAuth::DigestAuth#authenticate uses this
     def userdb.get_passwd(realm, user, reload)
       Digest::MD5::hexdigest([user, realm, self[user]].join(":"))
     end
@@ -132,14 +127,13 @@ class AtomProtocolTest < Test::Unit::TestCase
     @http.pass = PASS
 
     # correct credentials
-    res = get_root
-    assert_equal SECRET_DATA, res.body
+    assert_authenticates
 
     @s.stop
   end
 
   def test_wsse_auth
-    @s.mount_proc("/") do |req,res|
+    mount_one_shot do |req,res|
       assert_equal 'WSSE profile="UsernameToken"', req["Authorization"]
 
       xwsse = req["X-WSSE"]
@@ -159,24 +153,38 @@ class AtomProtocolTest < Test::Unit::TestCase
       assert_equal password_digest, p[:PasswordDigest]
 
       res.body = SECRET_DATA
-      @s.stop
     end
-
-    one_shot
 
     @http.always_auth = :wsse
     @http.user = USER
     @http.pass = PASS
-    
-    get_root
 
-    assert_equal "200", @res.code 
-    assert_equal SECRET_DATA, @res.body
+    assert_authenticates
   end
 
+  # mount a block on the test server, shutting the server down after a
+  # single request
+  def mount_one_shot &block
+    @s.mount_proc("/") do |req,res|
+      block.call req, res
+      @s.stop
+    end
+
+    one_shot
+  end
+
+  # test that we authenticated properly
+  def assert_authenticates
+    get_root
+    assert_equal "200", @res.code 
+    assert_equal SECRET_DATA, @res.body 
+  end
+
+  # performs a GET on the test server
   def get_root(*args)
     @res = @http.get("http://localhost:#{@port}/", *args)
   end
 
+  # sets up the server for a single request
   def one_shot; Thread.new { @s.start }; end
 end
