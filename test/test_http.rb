@@ -106,6 +106,38 @@ class AtomHTTPTest < Test::Unit::TestCase
     @s.stop
   end
 
+  def test_redirect_non_GET_non_HEAD
+    @s.mount_proc("/") do |req,res|
+      assert_equal "POST", req.request_method
+      res.status = 302
+      res["Location"] = "http://localhost:#{@port}/redirected"
+    end
+
+    @s.mount_proc("/redirected") do |req,res|
+      assert_equal "POST", req.request_method
+      assert_equal "important message", req.body
+      res.content_type = "text/plain"
+      res.body = "Success!"
+    end
+
+    one_shot
+
+    @res = @http.post "http://localhost:#{@port}/", "important message"
+
+    assert_equal "302", @res.code
+
+    @http.allow_all_redirects = true
+
+    one_shot
+
+    @res = @http.post "http://localhost:#{@port}/", "important message"
+
+    assert_equal "200", @res.code
+    assert_equal "Success!", @res.body
+
+    @s.stop
+  end
+
   def test_basic_auth
     mount_one_shot do |req,res|
       WEBrick::HTTPAuth.basic_auth(req, res, REALM) do |u,p|

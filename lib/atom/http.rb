@@ -128,6 +128,9 @@ module Atom
     # default is nil, which 
     attr_accessor :always_auth
 
+    # automatically handle redirects, even for POST/PUT/DELETE requests?
+    attr_accessor :allow_all_redirects
+
     def initialize # :nodoc:
       @get_auth_details = lambda do |abs_url, realm|
         if @user and @pass
@@ -253,10 +256,10 @@ module Atom
           end
         end
       when Net::HTTPRedirection
-        if res["Location"] and [Net::HTTP::Get, Net::HTTP::Head].member? method
+        if res["Location"] and (allow_all_redirects or [Net::HTTP::Get, Net::HTTP::Head].member? method)
           raise HTTPException, "Too many redirects" if redirect_limit.zero?
 
-          res = http_request res["Location"], method, nil, init_headers, nil, (redirect_limit - 1)
+          res = http_request res["Location"], method, body, init_headers, nil, (redirect_limit - 1)
         end
       end
 
