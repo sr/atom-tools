@@ -60,6 +60,8 @@ END
 
   def test_update
     @s.mount_proc("/") do |req,res|
+      assert_equal "application/atom+xml", req["Accept"]
+
       res.content_type = "application/atom+xml"
       res.body = @test_feed
 

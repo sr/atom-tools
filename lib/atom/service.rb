@@ -100,7 +100,7 @@ module Atom
 
       rxml = nil
 
-      res = @http.get(base)
+      res = @http.get(base, "Accept" => "application/atomserv+xml")
       res.validate_content_type(["application/atomserv+xml"])
 
       unless res.code == "200" # XXX needs to handle redirects, &c.

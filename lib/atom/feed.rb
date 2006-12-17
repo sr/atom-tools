@@ -161,6 +161,7 @@ module Atom
       raise(RuntimeError, "can't fetch without a uri.") unless @uri
      
       headers = {}
+      headers["Accept"] = "application/atom+xml"
       headers["If-None-Match"] = @etag if @etag
       headers["If-Modified-Since"] = @last_modified if @last_modified
 

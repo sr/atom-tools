@@ -55,7 +55,7 @@ module Atom
   class HTTP
     # GET a URL and turn it into an Atom::Entry
     def get_atom_entry(url)
-      res = get(url)
+      res = get(url, "Accept" => "application/atom+xml")
 
       # be picky for atom:entrys
       res.validate_content_type( [ "application/atom+xml" ] )
