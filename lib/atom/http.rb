@@ -178,6 +178,29 @@ module Atom
       @get_auth_details = block
     end
 
+    # GET a URL and turn it into an Atom::Entry
+    def get_atom_entry(url)
+      res = get(url, "Accept" => "application/atom+xml")
+
+      # be picky for atom:entrys
+      res.validate_content_type( [ "application/atom+xml" ] )
+
+      # XXX handle other HTTP codes
+      if res.code != "200"
+        raise Atom::HTTPException, "expected Atom::Entry, didn't get it"
+      end
+
+      Atom::Entry.parse(res.body, url)
+    end
+
+    # PUT an Atom::Entry to a URL
+    def put_atom_entry(entry, url = entry.edit_url)
+      raise "Cowardly refusing to PUT a non-Atom::Entry (#{entry.class})" unless entry.is_a? Atom::Entry
+      headers = {"Content-Type" => "application/atom+xml" }
+      
+      put(url, entry.to_s, headers)
+    end
+    
     private
     # parses plain quoted-strings
     def parse_quoted_wwwauth param_string

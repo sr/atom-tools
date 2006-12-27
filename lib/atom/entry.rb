@@ -89,6 +89,19 @@ module Atom
       end
     end
 
+    # the @href of an entry's link[@rel="edit"]
+    def edit_url
+      begin
+        edit_link = self.links.find do |link|
+          link["rel"] == "edit"
+        end
+
+        edit_link["href"]
+      rescue
+        nil
+      end
+    end
+
 # XXX this needs a test suite before it can be trusted.
 =begin
     # tests the entry's validity

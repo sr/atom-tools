@@ -147,19 +147,4 @@ module Atom
       doc
     end
   end
- 
-  class Entry
-    # the @href of an entry's link[@rel="edit"]
-    def edit_url
-      begin
-        edit_link = self.links.find do |link|
-          link["rel"] == "edit"
-        end
-
-        edit_link["href"]
-      rescue
-        nil
-      end
-    end
-  end
 end
