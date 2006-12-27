@@ -250,6 +250,28 @@ class AtomHTTPTest < Test::Unit::TestCase
     assert_authenticates
   end
 
+  def test_https
+    require 'webrick/https'
+
+    @s = WEBrick::HTTPServer.new(
+          :Port            => (@port + 1),
+          :DocumentRoot    => Dir::pwd + "/htdocs",
+          :Logger => WEBrick::Log.new($stderr, WEBrick::Log::FATAL), 
+          :AccessLog => [],
+          :SSLEnable       => true,
+          :SSLVerifyClient => ::OpenSSL::SSL::VERIFY_NONE,
+          :SSLCertName => [ ["C","CA"], ["O","localhost"], ["CN", "WWW"] ]
+       )
+
+    mount_one_shot do |req,res|
+      res.body = SECRET_DATA
+    end
+
+    res = @http.get("https://localhost:#{@port + 1}/")
+
+    assert_equal "200", res.code
+    assert_equal SECRET_DATA, res.body
+  end
 
   # mount a block on the test server, shutting the server down after a
   # single request

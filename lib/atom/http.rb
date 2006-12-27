@@ -1,5 +1,6 @@
 require "net/http"
-require 'uri'
+require "net/https"
+require "uri"
 
 require "sha1"
 require "md5"
@@ -239,8 +240,13 @@ module Atom
         auth_type = $~[1]
         self.send("#{auth_type.downcase}_authenticate", req, url, param_string)
       end
- 
-      res = Net::HTTP.start(url.host, url.port) { |h| h.request(req, body) }
+
+      http_obj = Net::HTTP.new(url.host, url.port)
+      http_obj.use_ssl = true if url.scheme == "https"
+
+      res = http_obj.start do |h|
+        h.request(req, body)
+      end
 
       case res
       when Net::HTTPUnauthorized
