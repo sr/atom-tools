@@ -113,7 +113,7 @@ module Atom
     # used by the default #when_auth
     attr_accessor :user, :pass
 
-    # the token used by Google's AuthSub authentication
+    # the token used for Google's AuthSub authentication
     attr_accessor :token
 
     # when set to :basic, :wsse or :authsub, this will send an 
@@ -126,10 +126,14 @@ module Atom
     # :digest won't work, since Digest authentication requires an 
     # initial challenge to generate a response
     #
-    # default is nil, which 
+    # defaults to nil
     attr_accessor :always_auth
 
     # automatically handle redirects, even for POST/PUT/DELETE requests?
+    #
+    # defaults to false, which will transparently redirect GET requests
+    # but return a Net::HTTPRedirection object when the server
+    # indicates to redirect a POST/PUT/DELETE
     attr_accessor :allow_all_redirects
 
     def initialize # :nodoc:
