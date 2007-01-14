@@ -14,7 +14,7 @@ class String # :nodoc:
 end
 
 module Atom
-  UA = "atom-tools 0.9.1"
+  UA = "atom-tools 0.9.2"
 
   module DigestAuth
     CNONCE = Digest::MD5.new("%x" % (Time.now.to_i + rand(65535))).hexdigest
@@ -317,7 +317,7 @@ module Atom
   module HTTPResponse
     # this should probably support ranges (eg. text/*)
     def validate_content_type( valid )
-      raise Atom::HTTPException, "HTTP response contains no Content-Type!" unless self.content_type
+      raise Atom::HTTPException, "HTTP response contains no Content-Type!" if not self.content_type or self.content_type.empty?
 
       media_type = self.content_type.split(";").first
 
