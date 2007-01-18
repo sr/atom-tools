@@ -62,7 +62,7 @@ module Atom
     def to_yaml_type # :nodoc:
       '!necronomicorp.com,2006/entry'
     end
- 
+
     # parses an Atom::Entry from YAML
     def self.from_yaml yaml
       hash = if yaml.kind_of?(Hash); yaml else YAML.load(yaml); end
@@ -71,23 +71,27 @@ module Atom
 
       entry.title   = hash["title"]
       entry.summary = hash["summary"]
-     
+
       elem_constructs = {"authors" => entry.authors, "contributors" => entry.contributors, "links" => entry.links, "categories" => entry.categories}
 
       elem_constructs.each do |type,ary|
         hash[type] ||= []
-        
+
         hash[type].each do |yelem|
           elem = ary.new
 
           elem.class.attrs.each do |attrb,req|
             elem[attrb.to_s] = yelem[attrb.to_s]
           end
-    
+
           elem.class.elements.each do |name,kind,req|
             elem.send("#{name}=".to_sym, yelem[name.to_s])
           end
         end
+      end
+
+      ["id", "published", "updated"].each do |name|
+        entry.send("#{name}=".to_sym, hash[name])
       end
 
       # this adds more categories, and could cause conflicts
