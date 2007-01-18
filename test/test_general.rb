@@ -46,15 +46,23 @@ class AtomTest < Test::Unit::TestCase
     assert_has_category(xml, "tags")
   end
 
-  def test_snarf_yaml
-    yaml = """title: testing YAML
+  def test_devour_yaml
+    time = Time.parse "2007-01-18T12:37:46Z"
+
+    yaml = <<END
+title: testing YAML
+
 authors:
 - name: Mr. Safe
   uri: http://example.com/
+
 links:
 - href: http://atomenabled.org/
-content: not much here\
-"""
+
+content: not much here
+
+updated: #{time.iso8601}
+END
 
     entry = Atom::Entry.from_yaml(yaml)
 
@@ -63,13 +71,15 @@ content: not much here\
     assert_equal(1, entry.authors.length)
     assert_equal("Mr. Safe", entry.authors.first.name)
     assert_equal("http://example.com/", entry.authors.first.uri)
-    
+
     assert_equal(1, entry.links.length)
     assert_equal("http://atomenabled.org/", entry.links.first["href"])
 
     assert_equal("not much here", entry.content.to_s)
+
+    assert_equal(time, entry.updated)
   end
- 
+
   def assert_has_category xml, term
     assert_not_nil(REXML::XPath.match(xml, "/entry/category[@term = #{term}]"))
   end
@@ -85,10 +95,10 @@ content: not much here\
   def get_elements entry
     xml = entry.to_xml
 
-    assert_equal(entry.to_s, Atom::Entry.parse(xml).to_s) 
-    
+    assert_equal(entry.to_s, Atom::Entry.parse(xml).to_s)
+
     base_check xml
-    
+
     xml
   end
 
