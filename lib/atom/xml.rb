@@ -54,14 +54,14 @@ module REXML # :nodoc: all
 
       self.attributes[attr]
     end
-   
+
     def fill_text_construct(entry, name)
       text = get_atom_element(name)
       if text
         type = text.ns_attr("type")
         src = text.ns_attr("src")
 
-        if src and name == :content 
+        if src and name == :content
           # the only content is out of line
           entry.send( "#{name}=".to_sym, "")
           entry.send(name.to_sym)["src"] = src
@@ -74,10 +74,10 @@ module REXML # :nodoc: all
           # content is the serialized content of the <div> wrapper
           entry.send( "#{name}=".to_sym, div )
         else
-          raw = text.text
+          raw = text.text || ""
           entry.send( "#{name}=", raw )
         end
-      
+
         if text.attributes["xml:base"]
           entry.send(name.to_sym).base = text.attributes["xml:base"]
         end
@@ -91,7 +91,7 @@ module REXML # :nodoc: all
     def fill_elem_element(top, kind)
       each_atom_element(kind) do |elem|
         person = top.send("#{kind}s".to_sym).new
-     
+
         ["name", "uri", "email"].each do |name|
           person.send("#{name}=".to_sym, elem.get_atom_text(name))
         end

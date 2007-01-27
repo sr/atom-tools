@@ -6,12 +6,12 @@ require "atom/service"
 class AtomTest < Test::Unit::TestCase
   def test_text_type_text
     entry = get_entry
-    
+
     entry.title = "Atom-drunk pirates run amok!"
     assert_equal("text", entry.title["type"])
 
     xml = get_elements entry
-    
+
     assert_equal("Atom-drunk pirates run amok!", xml.elements["/entry/title"].text)
   end
 
@@ -34,7 +34,7 @@ class AtomTest < Test::Unit::TestCase
     entry.title["type"] = "xhtml"
 
     xml = get_elements entry
-    
+
     base_check xml
 
     assert_equal(XHTML::NS, xml.elements["/entry/title/div"].namespace)
@@ -44,7 +44,7 @@ class AtomTest < Test::Unit::TestCase
   def test_author
     entry = get_entry
     a = entry.authors.new
-    
+
     a.name= "Brendan Taylor"
     a.uri = "http://necronomicorp.com/blog/"
 
@@ -141,10 +141,10 @@ str = '<entry xmlns="http://www.w3.org/2005/Atom">
 </entry>'
 
     entry = Atom::Entry.parse(str)
-  
+
     assert_equal("Atom draft-07 snapshot", entry.title.to_s)
     assert_equal("tag:example.org,2003:3.2397", entry.id)
-  
+
     assert_equal(Time.parse("2005-07-31T12:29:29Z"), entry.updated)
     assert_equal(Time.parse("2003-12-13T08:29:29-04:00"), entry.published)
 
@@ -162,16 +162,16 @@ str = '<entry xmlns="http://www.w3.org/2005/Atom">
     assert_equal("Mark Pilgrim", entry.authors.first.name)
     assert_equal("http://example.org/", entry.authors.first.uri)
     assert_equal("f8dy@example.com", entry.authors.first.email)
-    
+
     assert_equal(2, entry.contributors.length)
     assert_equal("Sam Ruby", entry.contributors.first.name)
     assert_equal("Joe Gregorio", entry.contributors.last.name)
-  
+
     assert_equal("xhtml", entry.content["type"])
-   
+
     assert_match("<p><i>[Update: The Atom draft is finished.]</i></p>", 
                  entry.content.to_s)
-    
+
     assert_equal("http://diveintomark.org/", entry.content.base)
     # XXX unimplemented
 #    assert_equal("en", entry.content.lang)
@@ -239,7 +239,7 @@ END
     # XXX unimplemented
     # assert_equal("http://www.example.com/", feed.generator["uri"])
     # assert_equal("1.0", feed.generator["version"])
-   
+
     assert_equal(1, feed.entries.length)
     assert_equal "Atom draft-07 snapshot", feed.entries.first.title.to_s
   end
@@ -259,6 +259,18 @@ END
     assert_equal "<p>...&amp; as a result of this, I submit that <var>pi</var> &lt; 4", entry.summary.html.strip
   end
 
+  def test_parse_goofy_entries
+xml = <<END
+<entry xmlns="http://www.w3.org/2005/Atom">
+<content type="html"></content>
+</entry>
+END
+
+    entry = Atom::Entry.parse(xml)
+
+    assert_equal("", entry.content.to_s)
+  end
+
   def test_parse_outofline_content
     xml = <<END
 <entry xmlns="http://www.w3.org/2005/Atom">
@@ -267,7 +279,7 @@ Summary doesn't have src.
   </summary>
 </entry>
 END
-  
+
     entry = Atom::Entry.parse xml
 
     assert_raises(RuntimeError) { entry.summary["src"] }
@@ -291,7 +303,7 @@ END
     entry = Atom::Entry.new
 
     entry.base = "http://necronomicorp.com/nil"
-  
+
     base = get_elements(entry).root.attributes["xml:base"]
     assert_equal "http://necronomicorp.com/nil", base
 
@@ -304,11 +316,11 @@ END
   def test_relative_base
     base_url = "http://www.tbray.org/ongoing/ongoing.atom"
     doc = "<entry xmlns='http://www.w3.org/2005/Atom' xml:base='When/200x/2006/10/11/'/>"
-    
+
     entry = Atom::Entry.parse(doc, base_url)
     assert_equal("http://www.tbray.org/ongoing/When/200x/2006/10/11/", entry.base)
   end
-  
+
   def test_edit_url
     doc = <<END
 <entry xmlns="http://www.w3.org/2005/Atom"><link rel="edit"/></entry>
@@ -324,7 +336,7 @@ END
     entry = Atom::Entry.parse(doc)
 
     assert_nil(entry.edit_url)
-    
+
     doc = <<END
 <entry xmlns="http://www.w3.org/2005/Atom">
   <link rel="edit" href="http://necronomicorp.com/nil"/>
@@ -353,10 +365,10 @@ END
   def get_elements entry
     xml = entry.to_xml
 
-    assert_equal(entry.to_s, Atom::Entry.parse(xml).to_s) 
-    
+    assert_equal(entry.to_s, Atom::Entry.parse(xml).to_s)
+
     base_check xml
-    
+
     xml
   end
 
