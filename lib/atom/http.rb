@@ -172,12 +172,11 @@ module Atom
     #
     # the default is to use the values of @user and @pass.
     #
-    # your block will be called with two parameters
+    # your block will be called with two parameters:
     # abs_url:: the base URL of the request URL
-    # realm:: the realm used in the WWW-Authenticate header 
-    # (will be nil if there is no WWW-Authenticate header)
-    # 
-    # it should return a value of the form [username, password]
+    # realm:: the realm used in the WWW-Authenticate header (maybe nil)
+    #
+    # your block should return [username, password], or nil
     def when_auth &block # :yields: abs_url, realm
       @get_auth_details = block
     end

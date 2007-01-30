@@ -150,24 +150,31 @@ class AtomHTTPTest < Test::Unit::TestCase
     # no credentials
     assert_raises(Atom::Unauthorized) { get_root }
 
+    # incorrect credentials
     @http.user = USER
     @http.pass = "incorrect_password"
 
     one_shot
 
-    # incorrect credentials
     assert_raises(Atom::Unauthorized) { get_root }
 
+    # no credentials, fancy block
+    @http.when_auth do nil end
+
+    one_shot
+
+    assert_raises(Atom::Unauthorized) { get_root }
+
+    # correct credentials, fancy block
     @http.when_auth do |abs_url,realm|
       assert_equal "http://localhost:#{@port}/", abs_url 
       assert_equal REALM, realm
 
       [USER, PASS]
     end
-   
+
     one_shot
-    
-    # correct credentials
+
     assert_authenticates
   end
 
