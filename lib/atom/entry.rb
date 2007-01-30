@@ -80,11 +80,12 @@ module Atom
       self.updated = Time.now
     end
 
-    # categorize the entry based on a space-separated string
-    def tag_with string
-      return if string.nil?
+    # categorize the entry with each of an array or a space-separated
+    #   string
+    def tag_with tags
+      return unless tags
 
-      string.split.each do |tag|
+      (tags.is_a?(String) ? tags.split : tags).each do |tag|
         categories.new["term"] = tag
       end
     end
