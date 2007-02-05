@@ -185,13 +185,13 @@ module Atom
     def get_atom_entry(url)
       res = get(url, "Accept" => "application/atom+xml")
 
-      # be picky for atom:entrys
-      res.validate_content_type( [ "application/atom+xml" ] )
-
       # XXX handle other HTTP codes
       if res.code != "200"
-        raise Atom::HTTPException, "expected Atom::Entry, didn't get it"
+        raise Atom::HTTPException, "failed to fetch entry: expected 200 OK, got #{res.code}"
       end
+
+      # be picky for atom:entrys
+      res.validate_content_type( [ "application/atom+xml" ] )
 
       Atom::Entry.parse(res.body, url)
     end
@@ -200,10 +200,10 @@ module Atom
     def put_atom_entry(entry, url = entry.edit_url)
       raise "Cowardly refusing to PUT a non-Atom::Entry (#{entry.class})" unless entry.is_a? Atom::Entry
       headers = {"Content-Type" => "application/atom+xml" }
-      
+
       put(url, entry.to_s, headers)
     end
-    
+
     private
     # parses plain quoted-strings
     def parse_quoted_wwwauth param_string

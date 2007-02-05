@@ -5,8 +5,6 @@ require "atom/element"
 require "atom/collection"
 
 module Atom
-  PP_NS = "http://purl.org/atom/app#"
-  
   class WrongNamespace < RuntimeError #:nodoc:
   end
   class WrongResponse < RuntimeError # :nodoc:
