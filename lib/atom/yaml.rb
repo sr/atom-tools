@@ -63,16 +63,31 @@ module Atom
       '!necronomicorp.com,2006/entry'
     end
 
+    def to_yaml( opts = {} ) # :nodoc:
+      YAML::quick_emit( object_id, opts ) do |out|
+        out.map( taguri, to_yaml_style ) do |map|
+          self.to_yaml_properties.each do |m|
+            map.add( m[1..-1], instance_variable_get( m ) )
+          end
+          map.add("draft", true) if self.draft
+        end
+      end
+    end
+
     # parses an Atom::Entry from YAML
     def self.from_yaml yaml
       hash = if yaml.kind_of?(Hash); yaml else YAML.load(yaml); end
 
       entry = Atom::Entry.new
 
-      entry.title   = hash["title"]
-      entry.summary = hash["summary"]
+      ["id", "published", "updated", "title", "summary", "draft"].each do |name|
+        entry.send("#{name}=".to_sym, hash[name])
+      end
 
-      elem_constructs = {"authors" => entry.authors, "contributors" => entry.contributors, "links" => entry.links, "categories" => entry.categories}
+      elem_constructs = {"authors" => entry.authors,
+                         "contributors" => entry.contributors,
+                         "links" => entry.links,
+                         "categories" => entry.categories}
 
       elem_constructs.each do |type,ary|
         hash[type] ||= []
@@ -90,12 +105,8 @@ module Atom
         end
       end
 
-      ["id", "published", "updated"].each do |name|
-        entry.send("#{name}=".to_sym, hash[name])
-      end
-
-      # this adds more categories, and could cause conflicts
       entry.tag_with hash["tags"]
+
       entry.content = hash["content"]
       entry.content["type"] = hash["type"] if hash["type"]
 

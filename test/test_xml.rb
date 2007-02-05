@@ -111,6 +111,26 @@ class AtomTest < Test::Unit::TestCase
     assert_equal("http://purl.org/", xml.elements["/entry/test"].namespace)
   end
 
+  def test_app_control
+    entry = get_entry
+
+    assert !entry.draft
+
+    assert_nil get_elements(entry).elements["/entry/control"]
+
+    entry.draft = true
+
+    xml = get_elements entry
+
+    assert_equal Atom::PP_NS, xml.elements["/entry/control"].namespace
+    assert_equal Atom::PP_NS, xml.elements["/entry/control/draft"].namespace
+    assert_equal "yes", xml.elements["/entry/control/draft"].text
+
+    entry2 = Atom::Entry.parse xml
+
+    assert entry.draft
+  end
+
   def test_extensive_enty_parsing
 str = '<entry xmlns="http://www.w3.org/2005/Atom">
   <title>Atom draft-07 snapshot</title>

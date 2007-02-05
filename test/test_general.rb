@@ -51,6 +51,7 @@ class AtomTest < Test::Unit::TestCase
 
     yaml = <<END
 title: testing YAML
+draft: yes
 
 authors:
 - name: Mr. Safe
@@ -67,6 +68,8 @@ END
     entry = Atom::Entry.from_yaml(yaml)
 
     assert_equal("testing YAML", entry.title.to_s)
+
+    assert entry.draft
 
     assert_equal(1, entry.authors.length)
     assert_equal("Mr. Safe", entry.authors.first.name)
