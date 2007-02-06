@@ -129,7 +129,7 @@ module Atom
         end
 
         draft_e.text = "yes"
-      else
+      elsif not is_draft and draft
         draft_e.remove
         control_e.remove if control_e.elements.empty?
       end
