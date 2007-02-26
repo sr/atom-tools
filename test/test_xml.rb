@@ -41,6 +41,15 @@ class AtomTest < Test::Unit::TestCase
     assert_equal("run amok", xml.elements["/entry/title/div/em"].text)
   end
 
+  def test_html_text_with_entities
+    entry = get_entry
+
+    entry.title = "Atoms discovered to be smaller than 1&mu;m"
+    entry.title["type"] = "html"
+
+    assert_match /&amp;mu;/, entry.to_s
+  end
+
   def test_author
     entry = get_entry
     a = entry.authors.new
@@ -367,7 +376,6 @@ END
 
     assert_equal("http://necronomicorp.com/nil", entry.edit_url)
   end
-
 
   def assert_has_category xml, term
     assert_not_nil(REXML::XPath.match(xml, "/entry/category[@term = #{term}]"))
