@@ -44,12 +44,12 @@ END
     assert_equal "This really is a horrendous mess.", last.text
 =end
   end
-  
+
   def test_text_construct_text
     entry = Atom::Entry.new
 
     assert_nil entry.title
-    assert_equal "", entry.title.to_s 
+    assert_equal "", entry.title.to_s
 
     entry.title = "<3"
 

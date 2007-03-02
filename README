@@ -10,7 +10,7 @@ It handles all the nasty XML and HTTP details so that you don't have to.
 
   feed = Atom::Feed.new "http://www.tbray.org/ongoing/ongoing.atom"
     # => <http://www.tbray.org/ongoing/ongoing.atom entries: 0 title=''>
-  
+
   feed.update!
   feed.entries.length
     # => 20
@@ -29,7 +29,7 @@ It handles all the nasty XML and HTTP details so that you don't have to.
 
   entry.links.last
     # => {"href"=>"http://www.tbray.org/ongoing/When/200x/2006/11/07/Munich#comments", "rel"=>"replies", "type" => "application/xhtml+xml"}
-  
+
   entry.summary.to_s
     # => "That local spelling is nicer than the ugly English [...]"
 

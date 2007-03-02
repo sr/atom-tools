@@ -4,11 +4,19 @@ module XHTML
   NS = "http://www.w3.org/1999/xhtml"
 end
 
-module Atom 
+module Atom
   # An Atom::Element representing a text construct.
-  # It has a single attribute, "type", which accepts values
-  # "text", "html" and "xhtml"
-
+  # It has a single attribute, "type", which specifies how to interpret
+  # the element's content. Different types are:
+  #
+  # text:: a plain string, without any markup (default)
+  # html:: a chunk of HTML
+  # xhtml:: a chunk of *well-formed* XHTML
+  #
+  # You should set this attribute appropriately after you set a Text
+  # element (entry.content, entry.title or entry.summary).
+  #
+  # This content of this element can be retrieved in different formats, see #html and #xml
   class Text < Atom::Element
     attrb :type
 
@@ -16,19 +24,23 @@ module Atom
       @content = value
       @content ||= "" # in case of nil
       self["type"] = "text"
-      
+
       super name
     end
 
+    # convenient, but not overly useful. see #html instead.
     def to_s
-      if self["type"] == "xhtml" 
+      if self["type"] == "xhtml"
         @content.children.to_s
       else
         @content.to_s
       end
     end
 
-    # returns a string suitable for dumping into an HTML document
+    # returns a string suitable for dumping into an HTML document.
+    #
+    # if you're storing the content of a Text construct, you probably
+    # want this representation.
     def html
       if self["type"] == "xhtml" or self["type"] == "html"
         to_s
@@ -40,7 +52,7 @@ module Atom
     # attempts to parse the content of this element as XML and return it
     # as an array of REXML::Elements.
     #
-    # If this self["type"] is "html" and Hpricot is installed, it will
+    # If self["type"] is "html" and Hpricot is installed, it will
     # be converted to XHTML first.
     def xml
       if self["type"] == "xhtml"
@@ -83,7 +95,7 @@ module Atom
 
       super(key, value)
     end
-    
+
     def to_element # :nodoc:
       e = super
 
@@ -106,8 +118,9 @@ module Atom
 
       e
     end
-    
+
     private
+    # converts @content based on the value of self["type"]
     def convert_contents e
       if self["type"] == "xhtml"
         @content
@@ -117,7 +130,7 @@ module Atom
         @content.to_s.gsub(/&/, "&amp;")
       end
     end
-    
+
     def valid_type? type
       ["text", "xhtml", "html"].member? type
     end
