@@ -38,6 +38,7 @@ module Atom
     end
 
     # returns a string suitable for dumping into an HTML document.
+    #   (or nil if that's impossible)
     #
     # if you're storing the content of a Text construct, you probably
     # want this representation.
@@ -166,6 +167,14 @@ module Atom
   # * there is a "src" attribute which is an IRI that points to the content of the entry (in which case the content element will be empty)
   class Content < Atom::Text
     attrb :src
+
+    def html
+      if self["src"]
+        ""
+      else
+        super
+      end
+    end
 
     private
     def valid_type? type
