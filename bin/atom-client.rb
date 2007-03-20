@@ -1,7 +1,29 @@
 #!/usr/bin/ruby
 
-# syntax: ./atom-client.rb <introspection-url> [username] [password]
-#   a really simple YAML-and-$EDITOR based Publishing Protocol client
+require "optparse"
+
+options = {}
+
+OptionParser.new do |opts|
+  opts.banner = "Usage: #{$0} [options]"
+
+  opts.on("-c", "--coll-url [URL]", "URL of the collection you would like to manipulate") do |url|
+    options[:url] = url
+  end
+
+  opts.on("-u", "--user [USERNAME]", "Username to authenticate with") do |user|
+    options[:user] = user
+  end
+
+  opts.on("-p", "--password [PASSWORD]", "Password to authenticate with") do |pass|
+    options[:pass] = pass
+  end
+
+  opts.on_tail("-h", "--help", "Show this message") do
+    puts opts
+    exit
+  end
+end.parse!
 
 require "tempfile"
 
@@ -57,21 +79,20 @@ class Atom::Entry
 
   def edit
     yaml = YAML.load(self.to_yaml)
-    
-    # humans don't care about these things, we can replace it later
+   
+    # human readability
     yaml.delete "id"
 
     if yaml["links"]
-      yaml["links"].delete(yaml["links"].find { |l| l["rel"] == "edit" })
-      yaml["links"].delete(yaml["links"].find { |l| l["rel"] == "alternate" })
+      yaml["links"].find_all { |l| l["rel"] == "alternate" or l["rel"] == "edit" }.each { |l| yaml["links"].delete(l) }
       yaml.delete("links") if yaml["links"].empty?
     end
-
-    entry = write_entry(yaml.to_yaml)
+    
+    new_yaml, entry = write_entry(yaml.to_yaml)
     
     entry.id = self.id
 
-    entry
+    [new_yaml["slug"], entry]
   end
 end
 
@@ -95,24 +116,6 @@ def choose_from list
   item
 end
 
-def choose_collection server
-  puts "which collection?"
-
-  collections = []
-
-  # flatten it out into one big workspace
-  server.workspaces.each do |ws|
-    puts ws.title.to_s + ":"
-    ws.collections.each_with_index do |coll, index|
-      collections << coll
-
-      puts "#{index}: #{coll.title}"
-    end
-  end
-
-  choose_from collections
-end
-
 def choose_entry_url coll
   puts "which entry?"
 
@@ -134,11 +137,13 @@ def write_entry(editstring = "")
     edited = editstring.edit_externally
 
     if edited == editstring
-      puts "unchanged content, aborted"
+      puts "You didn't edit anything, aborting."
       exit
     end
 
-    entry = Atom::Entry.from_yaml edited
+    yaml = YAML.load(edited)
+
+    entry = Atom::Entry.from_yaml yaml
 
     entry.prepare_for_output
 
@@ -167,29 +172,46 @@ def write_entry(editstring = "")
     retry
   end
 
-  entry
+  [yaml, entry]
 end
 
 module Atom
-  class InvalidEntry < RuntimeError
-  end
+  class InvalidEntry < RuntimeError; end
 end
 
 EDITOR = ENV["EDITOR"] || "env vim"
 
-# now that i'm supporting -07 the interface has been shittified. apologies.
-introspection_url = ARGV[0]
-
 http = Atom::HTTP.new
-http.user = ARGV[1]
-http.pass = ARGV[2]
 
-server = Atom::Service.new(introspection_url, http)
+url = if options[:url]
+  options[:url]
+else
+  yaml = YAML.load(File.read("#{ENV["HOME"]}/.atom-client"))
+  collections = yaml["collections"]
 
-coll = choose_collection server
+  puts "which collection?"
 
-# XXX the server should *probably* replace this, but who knows yet?
-CLIENT_ID = "http://necronomicorp.com/dev/null"
+  collections.keys.each_with_index do |name,index|
+    puts "#{index}: #{name}"
+  end
+
+  tmp = choose_from collections.values
+
+  http.user = tmp["user"] if tmp["user"]
+  http.pass = tmp["pass"] if tmp["pass"]
+
+  tmp["url"]
+end
+
+http.user = options[:user] if options[:user]
+http.pass = options[:pass] if options[:pass]
+
+# this is where all the Atom stuff starts
+
+coll = Atom::Collection.new(url, http)
+
+# XXX generate a real id
+CLIENT_ID = "http://necronomicorp.com/nil"
 
 new = lambda do
   entry = Atom::Entry.new
@@ -197,12 +219,12 @@ new = lambda do
   entry.title = ""
   entry.content = ""
 
-  entry = entry.edit
+  slug, entry = entry.edit
 
   entry.id = CLIENT_ID
   entry.published = Time.now.iso8601
 
-  res = coll.post! entry
+  res = coll.post! entry, slug
 
   # XXX error recovery here, lost updates suck
   puts res.body
@@ -219,9 +241,13 @@ edit = lambda do
 
   url = entry.edit_url
 
+  raise "this entry has no edit link" unless url
+
   entry = http.get_atom_entry url
 
-  res = coll.put! entry.edit, url
+  slug, new_entry = entry.edit
+
+  res = coll.put! new_entry, url
 
   # XXX error recovery here, lost updates suck
   puts res.body
@@ -229,7 +255,7 @@ end
 
 delete = lambda do
   coll.update!
-  
+
   coll.entries.each_with_index do |entry,idx|
     puts "#{idx} #{entry.title}"
   end
