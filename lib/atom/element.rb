@@ -32,6 +32,11 @@ module Atom # :nodoc:
         item
       end
 
+      def << item
+        raise ArgumentError, "this can only hold items of class #{self.class.holds}" unless item.is_a? self.class.holds
+        super(item)
+      end
+
       def to_element
         collect do |item| item.to_element end
       end
@@ -42,6 +47,8 @@ module Atom # :nodoc:
     end
   end
 
+  # The Class' methods provide a DSL for describing Atom's structure
+  #   (and more generally for describing simple namespaced XML)
   class Element < Hash 
     # a REXML::Element that shares this element's extension attributes
     # and child elements
@@ -49,8 +56,6 @@ module Atom # :nodoc:
 
     # this element's xml:base
     attr_accessor :base
-
-    # The following is a DSL for describing an atom element.
 
     # this element's attributes
     def self.attrs # :nodoc:

@@ -124,6 +124,20 @@ END
     assert_equal("", entry.content.to_s)
   end
 
+  def test_multiple
+    entry = Atom::Entry.new
+
+    link = Atom::Link.new
+    link["href"] = "http://example.org/"
+
+    assert_raises(ArgumentError) { entry.authors << "test" }
+    assert_raises(ArgumentError) { entry.authors << link }
+    
+    entry.links << link
+
+    assert_equal 1, entry.links.length
+  end
+
   require "date"
   def test_date_construct
     today = Date.today
