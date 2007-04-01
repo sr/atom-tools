@@ -167,11 +167,6 @@ module Atom
 
       res = @http.get(@uri, headers)
 
-      # we'll be forgiving about feed content types.
-      res.validate_content_type(["application/atom+xml", 
-                                  "application/xml", 
-                                  "text/xml"])
-
       if res.code == "304"
         # we're already all up to date
         return self
@@ -181,7 +176,12 @@ module Atom
         raise Atom::HTTPException, "Unexpected HTTP response code: #{res.code}"
       end
        
-      @etag = res["Etag"] if res["Etag"]
+      # we'll be forgiving about feed content types.
+      res.validate_content_type(["application/atom+xml", 
+                                  "application/xml", 
+                                  "text/xml"])
+
+      @etag = res["ETag"] if res["ETag"]
       @last_modified = res["Last-Modified"] if res["Last-Modified"]
 
       xml = res.body
