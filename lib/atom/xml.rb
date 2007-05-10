@@ -28,11 +28,22 @@ module REXML # :nodoc: all
       end
     end
    
-    def get_extensions
+    def copy_extensions(coll)
       # XXX also look for attributes
-      children.find_all { |child| child.respond_to? :namespace and child.namespace != Atom::NS }
+      children.find_all do |child| 
+        child.respond_to? :namespace and child.namespace != Atom::NS 
+      end.each do |elem|
+        e = elem.dup
+
+        # because namespaces might be defined on parents
+        unless e.prefix.empty?
+          e.add_namespace e.prefix, e.namespace
+        end
+
+        coll << e
+      end
     end
-   
+
     # get the text content of a descendant element in the Atom namespace
     def get_atom_text name
       elem = get_atom_element name
@@ -105,7 +116,11 @@ module REXML # :nodoc: all
         thing.class.attrs.each do |name,req|
           value = elem.ns_attr name.to_s
           if value and name == :href
-            thing[name.to_s] = (top.base.to_uri + value).to_s
+            begin
+              thing[name.to_s] = (top.base.to_uri + value).to_s
+            rescue URI::BadURIError
+              raise "Document contains relative URIs and no xml:base. You must pass a base URI to #parse()"
+            end
           elsif value
             thing[name.to_s] = value
           end
@@ -145,10 +160,7 @@ module REXML # :nodoc: all
         fill_attr_element(entry, v, k)
       end
       
-      # extension elements
-      get_extensions.each do |elem|
-        entry.extensions << elem.dup # otherwise they get removed from the doc
-      end
+      copy_extensions(entry.extensions)
 
       entry
     end
@@ -189,10 +201,7 @@ module REXML # :nodoc: all
         feed << elem.to_atom_entry(feed.base)
       end
 
-      get_extensions.each do |elem|
-        # have to duplicate them, or they'll get removed from the doc
-        feed.extensions << elem.dup
-      end
+      copy_extensions(feed.extensions)
 
       feed
     end

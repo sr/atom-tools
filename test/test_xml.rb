@@ -47,7 +47,7 @@ class AtomTest < Test::Unit::TestCase
     entry.title = "Atoms discovered to be smaller than 1&mu;m"
     entry.title["type"] = "html"
 
-    assert_match /&amp;mu;/, entry.to_s
+    assert_match(/&amp;mu;/, entry.to_s)
   end
 
   def test_author
@@ -118,6 +118,12 @@ class AtomTest < Test::Unit::TestCase
 
     assert_equal(REXML::Element, xml.elements["/entry/test"].class)
     assert_equal("http://purl.org/", xml.elements["/entry/test"].namespace)
+  end
+
+  def test_roundtrip_extension
+    entry = Atom::Entry.parse("<entry xmlns='http://www.w3.org/2005/Atom' xmlns:nil='http://necronomicorp.com/nil'><nil:ext/></entry>")
+
+    assert_match(/xmlns:nil='http:\/\/necronomicorp.com\/nil'/, entry.to_s)
   end
 
   def test_app_control
