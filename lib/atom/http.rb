@@ -228,13 +228,13 @@ module Atom
     def wsse_authenticate(req, url, params = {})
       user, pass = username_and_password_for_realm(url, params["realm"])
 
-      nonce = Array.new(10){ rand(0x100000000) }.pack('I*')
-      nonce_b64 = [nonce].pack("m").chomp
+      # thanks to Sam Ruby
+      nonce = rand(16**32).to_s(16)
+      now = Time.now.gmtime.iso8601
 
-      now = Time.now.iso8601
       digest = [Digest::SHA1.digest(nonce + now + pass)].pack("m").chomp
       
-      req['X-WSSE'] = %Q<UsernameToken Username="#{user}", PasswordDigest="#{digest}", Nonce="#{nonce_b64}", Created="#{now}">
+      req['X-WSSE'] = %Q<UsernameToken Username="#{user}", PasswordDigest="#{digest}", Nonce="#{nonce}", Created="#{now}">
       req["Authorization"] = 'WSSE profile="UsernameToken"'
     end
 
@@ -263,8 +263,13 @@ module Atom
       elsif www_authenticate
         # XXX multiple challenges, multiple headers
         param_string = www_authenticate.sub!(/^(\w+) /, "")
-        auth_type = $~[1]
-        self.send("#{auth_type.downcase}_authenticate", req, url, param_string)
+        auth_method = ($~[1].downcase + "_authenticate").to_sym
+
+        if self.respond_to? auth_method, true # includes private methods
+          self.send(auth_method, req, url, param_string)
+        else
+          raise "No support for #{$~[1]} authentication"
+        end
       end
 
       http_obj = Net::HTTP.new(url.host, url.port)
