@@ -14,7 +14,7 @@ class String # :nodoc:
 end
 
 module Atom
-  UA = "atom-tools 0.9.2"
+  UA = "atom-tools 0.9.3"
 
   module DigestAuth
     CNONCE = Digest::MD5.new("%x" % (Time.now.to_i + rand(65535))).hexdigest
@@ -281,8 +281,9 @@ module Atom
 
       case res
       when Net::HTTPUnauthorized
-        if @always_auth or www_authenticate # XXX and not stale (Digest only) 
-          # we've tried the credentials you gave us once and failed
+        if @always_auth or www_authenticate or not res["WWW-Authenticate"] # XXX and not stale (Digest only) 
+          # we've tried the credentials you gave us once
+          # and failed, or the server gave us no way to fix it
           raise Unauthorized, "Your authorization was rejected"
         else
           # once more, with authentication
