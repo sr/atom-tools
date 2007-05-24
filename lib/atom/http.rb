@@ -223,18 +223,21 @@ module Atom
       req.basic_auth user, pass
     end
 
-    # WSSE authentication 
-    #   <http://www.xml.com/pub/a/2003/12/17/dive.html>
+    # is this the right way to do it? who knows, there's no
+    # spec!
+    #   <http://necronomicorp.com/lab/atom-authentication-sucks>
+    #
+    # thanks to H. Miyamoto for clearing things up.
     def wsse_authenticate(req, url, params = {})
       user, pass = username_and_password_for_realm(url, params["realm"])
 
-      # thanks to Sam Ruby
       nonce = rand(16**32).to_s(16)
+      nonce_enc = [nonce].pack('m').chomp
       now = Time.now.gmtime.iso8601
 
       digest = [Digest::SHA1.digest(nonce + now + pass)].pack("m").chomp
       
-      req['X-WSSE'] = %Q<UsernameToken Username="#{user}", PasswordDigest="#{digest}", Nonce="#{nonce}", Created="#{now}">
+      req['X-WSSE'] = %Q<UsernameToken Username="#{user}", PasswordDigest="#{digest}", Nonce="#{nonce_enc}", Created="#{now}">
       req["Authorization"] = 'WSSE profile="UsernameToken"'
     end
 
