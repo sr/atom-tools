@@ -79,7 +79,7 @@ class AtomTest < Test::Unit::TestCase
     entry.updated = "1970-01-01"
     entry.content = "blah"
 
-    assert_instance_of(Time, entry.updated)
+    assert entry.updated.is_a?(Time)
 
     xml = get_elements entry
 

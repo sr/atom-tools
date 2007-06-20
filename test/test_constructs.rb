@@ -5,7 +5,7 @@ class ConstructTest < Test::Unit::TestCase
   def test_text_construct_html_to_xml
     begin
       require "hpricot"
-    rescue
+    rescue LoadError
       # hpricot isn't installed, just skip this test
       puts "skipping hpricot tests"
       return

@@ -226,7 +226,7 @@ class AtomHTTPTest < Test::Unit::TestCase
       assert_match /^UsernameToken /, xwsse
 
       # Base64( SHA1( Nonce + CreationTimestamp + Password ) )
-      pd_string = p[:Nonce] + p[:Created] + PASS
+      pd_string = p[:Nonce].unpack("m").first + p[:Created] + PASS
       password_digest = [Digest::SHA1.digest(pd_string)].pack("m").chomp
 
       assert_equal password_digest, p[:PasswordDigest]
