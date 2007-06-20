@@ -3,7 +3,7 @@ require "net/https"
 require "uri"
 
 require "sha1"
-require "md5"
+require "digest/md5"
 
 module URI # :nodoc: all
   class Generic; def to_uri; self; end; end
@@ -17,7 +17,7 @@ module Atom
   UA = "atom-tools 0.9.3"
 
   module DigestAuth
-    CNONCE = Digest::MD5.new("%x" % (Time.now.to_i + rand(65535))).hexdigest
+    CNONCE = Digest::MD5.hexdigest("%x" % (Time.now.to_i + rand(65535)))
 
     @@nonce_count = -1
 
