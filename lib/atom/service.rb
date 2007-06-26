@@ -36,12 +36,12 @@ module Atom
        
         coll = Atom::Collection.new(url, http)
 
-        # XXX this is a Text Construct, and should be parsed as such
         col_el.fill_text_construct(coll, "title")
 
         accepts = REXML::XPath.first( col_el,
                                       "./app:accept",
                                       {"app" => Atom::PP_NS} )
+
         coll.accepts = (accepts ? accepts.text : "entry")
         
         ws.collections << coll
@@ -53,10 +53,11 @@ module Atom
     def to_element # :nodoc:
       root = REXML::Element.new "workspace" 
 
-      # damn you, REXML. Damn you and you bizarre handling of namespaces
-      title = self.title.to_element
-      title.name = "atom:title"
-      root << title
+      if self.title
+        title = self.title.to_element
+        title.name = "atom:title"
+        root << title
+      end
 
       self.collections.each do |coll|
         el = REXML::Element.new "collection"
@@ -98,8 +99,8 @@ module Atom
 
       rxml = nil
 
-      res = @http.get(base, "Accept" => "application/atomserv+xml")
-      res.validate_content_type(["application/atomserv+xml"])
+      res = @http.get(base, "Accept" => "application/atomsvc+xml")
+      res.validate_content_type(["application/atomsvc+xml"])
 
       unless res.code == "200" # XXX needs to handle redirects, &c.
         raise WrongResponse, "service document URL responded with unexpected code #{res.code}"
@@ -107,7 +108,15 @@ module Atom
 
       parse(res.body, base)
     end
- 
+
+    def self.parse xml, base = ""
+      Atom::Service.new.parse(xml, base)
+    end
+
+    def collections
+      self.workspaces.map { |ws| ws.collections }.flatten
+    end
+
     # parse a service document, adding its workspaces to this object
     def parse xml, base = ""
       rxml = if xml.is_a? REXML::Document

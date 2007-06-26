@@ -5,7 +5,7 @@ require "atom/text"
 
 module Atom
   NS = "http://www.w3.org/2005/Atom"
-  PP_NS = "http://purl.org/atom/app#"
+  PP_NS = "http://www.w3.org/2007/app"
 
   # An individual entry in a feed. As an Atom::Element, it can be
   # manipulated using accessors for each of its child elements. You

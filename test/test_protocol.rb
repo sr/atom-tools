@@ -21,7 +21,7 @@ end
 class AtomProtocolTest < Test::Unit::TestCase
   def test_introspection
     doc = <<END
-<service xmlns="http://purl.org/atom/app#"
+<service xmlns="http://www.w3.org/2007/app"
   xmlns:atom="http://www.w3.org/2005/Atom">
   <workspace>
     <atom:title>My Blog</atom:title>
@@ -36,11 +36,8 @@ class AtomProtocolTest < Test::Unit::TestCase
 </service>
 END
     
-    #http = FakeHTTP.new({ "http://example.com/service.xml" => service }, "application/atomserv+xml")
-
     service = Atom::Service.new
     service.parse doc
-    #service = Atom::Service.new "http://example.com/service.xml", http
 
     ws = service.workspaces.first
     assert_equal "My Blog", ws.title.to_s 
@@ -84,7 +81,7 @@ END
 
     doc = REXML::Document.new(service.to_s)
 
-    assert_equal "http://purl.org/atom/app#", doc.root.namespace
+    assert_equal "http://www.w3.org/2007/app", doc.root.namespace
 
     ws = REXML::XPath.first( doc.root, 
                               "/app:service/app:workspace", 

@@ -128,7 +128,7 @@ module Atom
       elsif self["type"] == "text" or self["type"].nil?
         REXML::Text.normalize(@content.to_s)
       elsif self["type"] == "html"
-        @content.to_s#.gsub(/&/, "&amp;")
+        @content.to_s.gsub(/&/, "&amp;")
       end
     end
 
