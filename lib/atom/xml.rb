@@ -2,6 +2,8 @@ require "atom/entry"
 require "atom/feed"
 require "uri"
 
+class Atom::ParseError < StandardError; end
+
 # Two big, interrelated problems:
 #
 # * I probably shouldn't be playing around in REXML's namespace
@@ -11,9 +13,11 @@ require "uri"
 module REXML # :nodoc: all
   class Document
     def to_atom_entry base = ""
+      raise Atom::ParseError unless self.root
       self.root.to_atom_entry base
     end
     def to_atom_feed base = ""
+      raise Atom::ParseError unless self.root
       self.root.to_atom_feed base
     end
   end
@@ -131,7 +135,7 @@ module REXML # :nodoc: all
     # 'base' is the URI that you fetched this document from.
     def to_atom_entry base = ""
       unless self.name == "entry" and self.namespace == Atom::NS
-        raise TypeError, "this isn't an atom:entry! (name: #{self.name}, ns: #{self.namespace})"
+        raise Atom::ParseError, "this isn't an atom:entry! (name: #{self.name}, ns: #{self.namespace})"
       end
 
       entry = Atom::Entry.new
@@ -168,7 +172,7 @@ module REXML # :nodoc: all
     # 'base' is the URI that you fetched this document from.
     def to_atom_feed base = ""
       unless self.name == "feed" and self.namespace == Atom::NS
-        raise TypeError, "this isn't an atom:feed! (name: #{self.name}, ns: #{self.namespace})"
+        raise Atom::ParseError, "this isn't an atom:feed! (name: #{self.name}, ns: #{self.namespace})"
       end
 
       feed = Atom::Feed.new

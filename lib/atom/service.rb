@@ -23,7 +23,11 @@ module Atom
       elsif xml.is_a? REXML::Element
         xml
       else 
-        REXML::Document.new(xml)
+        begin
+          REXML::Document.new(xml)
+        rescue REXML::ParseException
+          raise Atom::ParseError
+        end
       end
 
       xml.fill_text_construct(ws, "title")

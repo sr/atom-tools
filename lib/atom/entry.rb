@@ -66,7 +66,11 @@ module Atom
       elsif xml.respond_to? :read
         self.parse(xml.read)
       else
-        REXML::Document.new(xml.to_s).to_atom_entry(base)
+        begin
+          REXML::Document.new(xml.to_s).to_atom_entry(base)
+        rescue REXML::ParseException
+          raise Atom::ParseError
+        end
       end
     end
 
