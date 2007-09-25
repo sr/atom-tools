@@ -67,16 +67,18 @@ module Atom
       self.collections.each do |coll|
         el = REXML::Element.new "collection"
 
-        el.attributes["href"] = coll.uri
+        el.attributes["href"] = coll.uri.to_s
 
         title = coll.title.to_element
         title.name = "atom:title"
         el << title
        
         unless coll.accepts.nil?
-          accepts = REXML::Element.new "accepts"
-          accepts.text = coll.accepts
-          el << accepts
+          coll.accepts.each do |acc|
+            accept = REXML::Element.new "accept"
+            accept.text = acc
+            el << accept
+          end
         end
 
         root << el

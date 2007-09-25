@@ -74,7 +74,7 @@ END
 
     coll = Atom::Collection.new "http://example.org/audio"
     coll.title = "Audio"
-    coll.accepts = "audio/*"
+    coll.accepts = ["audio/*"]
     ws.collections << coll
 
     nses = { "app" => Atom::PP_NS, "atom" => Atom::NS }
@@ -102,7 +102,7 @@ END
     title = REXML::XPath.first(entries, "./atom:title", nses)
     assert_equal "Entries", title.text
 
-    accepts = REXML::XPath.first(entries, "./app:accepts", nses)
+    accepts = REXML::XPath.first(entries, "./app:accept", nses)
     assert_nil accepts
 
     audio = colls.last
@@ -112,7 +112,7 @@ END
     title = REXML::XPath.first(audio, "./atom:title", nses)
     assert_equal "Audio", title.text
 
-    accepts = REXML::XPath.first(audio, "./app:accepts", nses)
+    accepts = REXML::XPath.first(audio, "./app:accept", nses)
     assert_equal "audio/*", accepts.text
   end
 
