@@ -42,7 +42,12 @@ module Atom
                                       "./app:accept",
                                       {"app" => Atom::PP_NS} )
 
-        coll.accepts = (accepts ? accepts.text : "entry")
+        accepts = []
+        REXML::XPath.each(col_el, "./app:accept", {"app" => Atom::PP_NS}) do |a|
+          accepts << a.texts.join
+        end
+
+        coll.accepts = (accepts.empty? ? ["application/atom+xml;type=entry"] : accepts)
         
         ws.collections << coll
       end

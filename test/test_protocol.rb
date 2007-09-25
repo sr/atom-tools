@@ -43,14 +43,14 @@ END
     assert_equal "My Blog", ws.title.to_s 
 
     coll = ws.collections.first
-    assert_equal URI.parse("http://example.org/myblog/entries"), coll.uri 
-    assert_equal "Entries", coll.title.to_s 
-    assert_equal "entry", coll.accepts 
+    assert_equal URI.parse("http://example.org/myblog/entries"), coll.uri
+    assert_equal "Entries", coll.title.to_s
+    assert_equal ["application/atom+xml;type=entry"], coll.accepts
 
     coll = ws.collections.last
-    assert_equal URI.parse("http://example.org/myblog/fotes"), coll.uri 
-    assert_equal "Photos", coll.title.to_s 
-    assert_equal "image/*", coll.accepts 
+    assert_equal URI.parse("http://example.org/myblog/fotes"), coll.uri
+    assert_equal "Photos", coll.title.to_s
+    assert_equal ["image/*"], coll.accepts
 
     http = service.instance_variable_get(:@http)
     assert_instance_of Atom::HTTP, http
