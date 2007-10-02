@@ -134,7 +134,7 @@ module Atom
 
     # like #merge, but in place 
     def merge! other_feed
-      [:id, :title, :subtitle, :updated, :rights].each { |p|
+      [:id, :title, :subtitle, :updated, :rights, :logo, :icon].each { |p|
         self.send("#{p}=", other_feed.send("#{p}"))
       }
 
