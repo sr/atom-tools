@@ -146,7 +146,7 @@ class AtomTest < Test::Unit::TestCase
     assert entry.draft
   end
 
-  def test_extensive_enty_parsing
+  def test_extensive_entry_parsing
 str = '<entry xmlns="http://www.w3.org/2005/Atom">
   <title>Atom draft-07 snapshot</title>
   <link rel="alternate" type="text/html"

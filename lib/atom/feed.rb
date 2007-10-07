@@ -100,6 +100,10 @@ module Atom
       @entries.each &block
     end
 
+    def empty?
+      @entries.empty?
+    end
+
     # gets everything in the logical feed (could be a lot of stuff)
     # (see <http://www.ietf.org/internet-drafts/draft-nottingham-atompub-feed-history-05.txt>)
     def get_everything!
