@@ -170,7 +170,7 @@ module Atom # :nodoc:
 
       self.class.attrs.each do |name,req|
         value = self[name.to_s]
-        elem.attributes[name.to_s] = value if value
+        elem.attributes[name.to_s] = value.to_s if value
       end
 
       self.extensions.children.each do |element|
