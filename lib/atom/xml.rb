@@ -83,7 +83,7 @@ module REXML # :nodoc: all
         elsif type == "xhtml"
           div = XPath.first(text, "./xhtml:div", { "xhtml" => XHTML::NS })
           unless div
-            raise "Refusing to parse type='xhtml' with no <div/> wrapper"
+            raise Atom::ParseError, "Refusing to parse type='xhtml' with no <div/> wrapper"
           end
 
           # content is the serialized content of the <div> wrapper

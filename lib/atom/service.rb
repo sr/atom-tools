@@ -5,11 +5,6 @@ require "atom/element"
 require "atom/collection"
 
 module Atom
-  class WrongNamespace < RuntimeError #:nodoc:
-  end
-  class WrongResponse < RuntimeError # :nodoc:
-  end
-
   # an Atom::Workspace has a #title (Atom::Text) and #collections, an Array of Atom::Collection s
   class Workspace < Atom::Element
     element :collections, Atom::Multiple(Atom::Collection)
@@ -113,8 +108,8 @@ module Atom
       res = @http.get(base, "Accept" => "application/atomsvc+xml")
       res.validate_content_type(["application/atomsvc+xml"])
 
-      unless res.code == "200" # XXX needs to handle redirects, &c.
-        raise WrongResponse, "service document URL responded with unexpected code #{res.code}"
+      unless res.code == "200"
+        raise Atom::HTTPException, "Unexpected HTTP response code: #{res.code}"
       end
 
       parse(res.body, base)
@@ -139,7 +134,7 @@ module Atom
       end
 
       unless rxml.root.namespace == PP_NS
-        raise WrongNamespace, "this isn't an atom service document!"
+        raise Atom::ParseError, "this isn't an atom service document! (wrong namespace: #{rxml.root.namespace})"
       end
 
       REXML::XPath.match( rxml, "/app:service/app:workspace", {"app" => Atom::PP_NS} ).each do |ws_el|
