@@ -105,16 +105,14 @@ module Atom
       end
 
       # this should be done via inheritance
-      unless self.class == Atom::Content and self["src"]
-        c = convert_contents e
+      c = convert_contents e
 
-        if c.is_a? String
-          e.text = c
-        elsif c.is_a? REXML::Element
-          e << c.dup
-        else
-          raise RuntimeError, "atom:#{local_name} can't contain type #{@content.class}"
-        end
+      if c.is_a? String
+        e.text = c
+      elsif c.is_a? REXML::Element
+        e << c.dup
+      else
+        raise RuntimeError, "atom:#{local_name} can't contain type #{@content.class}"
       end
 
       e
@@ -174,6 +172,15 @@ module Atom
       else
         super
       end
+    end
+
+    def to_element
+      if self["src"]
+        element_super = Element.instance_method(:to_element)
+        return element_super.bind(self).call
+      end
+
+      super
     end
 
     private
