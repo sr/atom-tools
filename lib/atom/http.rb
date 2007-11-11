@@ -2,6 +2,8 @@ require "net/http"
 require "net/https"
 require "uri"
 
+require "atom/cache"
+
 require "sha1"
 require "digest/md5"
 
@@ -136,7 +138,18 @@ module Atom
     # indicates to redirect a POST/PUT/DELETE
     attr_accessor :allow_all_redirects
 
-    def initialize # :nodoc:
+    # if set, 'cache' should be a directory for a disk cache, or an object
+    # with the same interface as Atom::FileCache
+    def initialize cache = nil
+      if cache.is_a? String
+        @cache = FileCache.new(cache)
+      elsif cache
+        @cache = cache
+      else
+        @cache = NilCache.new
+      end
+
+      # initialize default #when_auth
       @get_auth_details = lambda do |abs_url, realm|
         if @user and @pass
           [@user, @pass]
@@ -257,8 +270,40 @@ module Atom
     end
 
     # performs a generic HTTP request.
-    def http_request(url_s, method, body = nil, init_headers = {}, www_authenticate = nil, redirect_limit = 5)
-      req, url = new_request(url_s, method, init_headers)
+    def http_request(url_s, method, body = nil, headers = {}, www_authenticate = nil, redirect_limit = 5)
+      cachekey = url_s.to_s
+
+      cached_value = @cache[cachekey]
+      if cached_value
+        sock = Net::BufferedIO.new(StringIO.new(cached_value))
+        info = Net::HTTPResponse.read_new(sock)
+        info.reading_body(sock, true) {}
+      end
+
+      if method == Net::HTTP::Put and info.key? 'etag' and not headers['If-Match']
+        headers['If-Match'] = info['etag']
+      end
+
+      if cached_value and not [Net::HTTP::Get, Net::HTTP::Head].member? method
+        @cache.delete(cachekey)
+      elsif cached_value
+        entry_disposition = _entry_disposition(info, headers)
+
+        if entry_disposition == :FRESH
+          info.extend Atom::HTTPResponse
+
+          return info
+        elsif entry_disposition == :STALE
+          if info.key? 'etag' and not headers['If-None-Match']
+            headers['If-None-Match'] = info['etag']
+          end
+          if info.key? 'last-modified' and not headers['Last-Modified']
+            headers['If-Modified-Since'] = info['last-modified']
+          end
+        end
+      end
+
+      req, url = new_request(url_s, method, headers)
    
       # two reasons to authenticate;
       if @always_auth
@@ -282,6 +327,9 @@ module Atom
         h.request(req, body)
       end
 
+      # a bit of added convenience
+      res.extend Atom::HTTPResponse
+
       case res
       when Net::HTTPUnauthorized
         if @always_auth or www_authenticate or not res["WWW-Authenticate"] # XXX and not stale (Digest only) 
@@ -290,22 +338,32 @@ module Atom
           raise Unauthorized, "Your authorization was rejected"
         else
           # once more, with authentication
-          res = http_request(url_s, method, body, init_headers, res["WWW-Authenticate"])
+          res = http_request(url_s, method, body, headers, res["WWW-Authenticate"])
 
           if res.kind_of? Net::HTTPUnauthorized
             raise Unauthorized, "Your authorization was rejected"
           end
         end
       when Net::HTTPRedirection
-        if res["Location"] and (allow_all_redirects or [Net::HTTP::Get, Net::HTTP::Head].member? method)
+        if res.code == "304" and method == Net::HTTP::Get
+          res.end2end_headers.each { |k| info[k] = res[k] }
+
+          res = info
+
+          res.extend Atom::HTTPResponse
+
+          _updateCache(headers, res, @cache, cachekey)
+        elsif res["Location"] and (allow_all_redirects or [Net::HTTP::Get, Net::HTTP::Head].member? method)
           raise HTTPException, "Too many redirects" if redirect_limit.zero?
 
-          res = http_request res["Location"], method, body, init_headers, nil, (redirect_limit - 1)
+          res = http_request res["Location"], method, body, headers, nil, (redirect_limit - 1)
         end
+      when Net::HTTPOK, Net::HTTPNonAuthoritativeInformation
+        unless res.key? 'Content-Location'
+          res['Content-Location'] = url_s
+        end
+        _updateCache(headers, res, @cache, cachekey)
       end
-
-      # a bit of added convenience
-      res.extend Atom::HTTPResponse
 
       res
     end
@@ -323,6 +381,8 @@ module Atom
   end
 
   module HTTPResponse
+    HOP_BY_HOP = ['connection', 'keep-alive', 'proxy-authenticate', 'proxy-authorization', 'te', 'trailers', 'transfer-encoding', 'upgrade']
+
     # this should probably support ranges (eg. text/*)
     def validate_content_type( valid )
       raise Atom::HTTPException, "HTTP response contains no Content-Type!" if not self.content_type or self.content_type.empty?
@@ -332,6 +392,14 @@ module Atom
       unless valid.member? media_type.downcase
         raise Atom::WrongMimetype, "unexpected response Content-Type: #{media_type.inspect}. should be one of: #{valid.inspect}"
       end
+    end
+
+    def end2end_headers
+      hopbyhop = HOP_BY_HOP
+      if self['connection']
+        hopbyhop += self['connection'].split(',').map { |x| x.strip }
+      end
+      @header.keys.reject { |x| hopbyhop.member? x.downcase }
     end
   end
 end

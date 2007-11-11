@@ -129,50 +129,6 @@ END
     assert_raises(Atom::HTTPException) { feed.update! }
   end
 
-  def test_conditional_get
-    @s.mount_proc("/") do |req,res|
-      assert_nil req["If-None-Match"]
-      assert_nil req["If-Modified-Since"]
-
-      res["Etag"] = '"xyzzy"'
-      res["Last-Modified"] = 'Wed, 15 Nov 1995 04:58:08 GMT'
-      res.content_type = "application/atom+xml"
-      res.body = @test_feed
-
-      @s.stop
-    end
-
-    feed = Atom::Feed.new "http://localhost:#{@port}/"
-
-    assert_equal 0, feed.entries.length
-    assert_equal nil, feed.etag
-    assert_equal nil, feed.last_modified
-
-    one_shot
-
-    feed.update!
-
-    assert_equal 1, feed.entries.length
-    assert_equal '"xyzzy"', feed.etag
-    assert_equal 'Wed, 15 Nov 1995 04:58:08 GMT', feed.last_modified
-
-    @s.mount_proc("/") do |req,res|
-      assert_equal '"xyzzy"', req["If-None-Match"]
-      assert_equal 'Wed, 15 Nov 1995 04:58:08 GMT', req["If-Modified-Since"]
-
-      res.status = 304
-      res.content_type = "application/atom+xml"
-      res.body = @test_feed
-      
-      @s.stop
-    end
-
-    one_shot
-    feed.update!
-
-    assert_equal 1, feed.entries.length
-  end
-
   # prepares the server for a single request
   def one_shot; Thread.new { @s.start }; end
 end

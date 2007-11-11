@@ -168,14 +168,9 @@ module Atom
     def update!
       raise(RuntimeError, "can't fetch without a uri.") unless @uri
      
-      headers = {}
-      headers["Accept"] = "application/atom+xml"
-      headers["If-None-Match"] = @etag if @etag
-      headers["If-Modified-Since"] = @last_modified if @last_modified
+      res = @http.get(@uri, "Accept" => "application/atom+xml")
 
-      res = @http.get(@uri, headers)
-
-      if res.code == "304"
+      if @etag and res['etag'] == @etag
         # we're already all up to date
         return self
       elsif res.code == "410"
@@ -183,14 +178,13 @@ module Atom
       elsif res.code != "200"
         raise Atom::HTTPException, "Unexpected HTTP response code: #{res.code}"
       end
-       
+
       # we'll be forgiving about feed content types.
       res.validate_content_type(["application/atom+xml", 
                                   "application/xml", 
                                   "text/xml"])
 
       @etag = res["ETag"] if res["ETag"]
-      @last_modified = res["Last-Modified"] if res["Last-Modified"]
 
       xml = res.body
 
