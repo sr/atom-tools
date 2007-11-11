@@ -6,7 +6,7 @@ require "rake/gempackagetask"
 require "rake/clean"
 
 NAME = "atom-tools"
-VERS = "0.9.5"
+VERS = "1.0.0"
 
 # the following from markaby-0.5's tools/rakehelp
 def setup_tests

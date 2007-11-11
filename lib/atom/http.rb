@@ -14,7 +14,7 @@ class String # :nodoc:
 end
 
 module Atom
-  UA = "atom-tools 0.9.5"
+  UA = "atom-tools 1.0.0"
 
   module DigestAuth
     CNONCE = Digest::MD5.hexdigest("%x" % (Time.now.to_i + rand(65535)))
