@@ -309,15 +309,7 @@ module Atom
       if @always_auth
         self.send("#{@always_auth}_authenticate", req, url)
       elsif www_authenticate
-        # XXX multiple challenges, multiple headers
-        param_string = www_authenticate.sub!(/^(\w+) /, "")
-        auth_method = ($~[1].downcase + "_authenticate").to_sym
-
-        if self.respond_to? auth_method, true # includes private methods
-          self.send(auth_method, req, url, param_string)
-        else
-          raise "No support for #{$~[1]} authentication"
-        end
+        dispatch_authorization www_authenticate, req, url
       end
 
       http_obj = Net::HTTP.new(url.host, url.port)
@@ -377,6 +369,24 @@ module Atom
       rel += "?" + url.query if url.query
 
       [method.new(rel, headers), url]
+    end
+
+    def dispatch_authorization www_authenticate, req, url
+      param_string = www_authenticate.sub(/^(\w+) /, "")
+      auth_method = ($~[1].downcase + "_authenticate").to_sym
+
+      if self.respond_to? auth_method, true # includes private methods
+        self.send(auth_method, req, url, param_string)
+      else
+        # didn't support the first offered, find the next header
+        next_to_try = www_authenticate.sub(/.* ([\w]+ )/, '\1')
+        if next_to_try == www_authenticate
+          # this was the last WWW-Authenticate header
+          raise Atom::Unauthorized, "No support for offered authentication types"
+        else
+          dispatch_authorization next_to_try, req, url
+        end
+      end
     end
   end
 

@@ -254,6 +254,24 @@ class AtomHTTPTest < Test::Unit::TestCase
     assert_authenticates
   end
 
+  def test_multiple_auth
+    mount_one_shot do |req,res|
+      # WEBrick doesn't seem to support sending multiple headers, so this is the best we can do
+      res["WWW-Authenticate"] = %{NonexistantAuth parameter="yes", qop="auth", Basic realm="#{REALM}", something="true"}
+
+      if req["Authorization"]
+        res.body = SECRET_DATA
+      else
+        res.status = 401
+      end
+    end
+
+    @http.user = USER
+    @http.pass = PASS
+
+    assert_authenticates
+  end
+
   def test_https
     require 'webrick/https'
 
