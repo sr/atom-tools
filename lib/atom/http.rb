@@ -278,10 +278,10 @@ module Atom
         sock = Net::BufferedIO.new(StringIO.new(cached_value))
         info = Net::HTTPResponse.read_new(sock)
         info.reading_body(sock, true) {}
-      end
 
-      if method == Net::HTTP::Put and info.key? 'etag' and not headers['If-Match']
-        headers['If-Match'] = info['etag']
+        if method == Net::HTTP::Put and info.key? 'etag' and not headers['If-Match']
+          headers['If-Match'] = info['etag']
+        end
       end
 
       if cached_value and not [Net::HTTP::Get, Net::HTTP::Head].member? method
