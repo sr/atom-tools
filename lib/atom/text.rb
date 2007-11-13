@@ -82,14 +82,14 @@ module Atom
     def []= key, value # :nodoc:
       if key == "type"
         unless valid_type? value
-          raise "atomTextConstruct type '#{value}' is meaningless"
+          raise Atom::ParseError, "atomTextConstruct type '#{value}' is meaningless"
         end
 
         if value == "xhtml"
           begin
             parse_xhtml_content
           rescue REXML::ParseException
-            raise "#{@content.inspect} can't be parsed as XML"
+            raise Atom::ParseError, "#{@content.inspect} can't be parsed as XML"
           end
         end
       end
@@ -112,7 +112,7 @@ module Atom
       elsif c.is_a? REXML::Element
         e << c.dup
       else
-        raise RuntimeError, "atom:#{local_name} can't contain type #{@content.class}"
+        raise "atom:#{local_name} can't contain type #{@content.class}"
       end
 
       e
