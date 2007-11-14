@@ -342,6 +342,8 @@ module Atom
 
           res = info
 
+          res["Content-Length"] = res.body.length
+
           res.extend Atom::HTTPResponse
 
           _updateCache(headers, res, @cache, cachekey)
