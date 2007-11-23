@@ -11,7 +11,7 @@ module Atom # :nodoc:
       else
         Time.parse date.to_s
       end
-        
+
       def date.to_s
         iso8601
       end
@@ -19,7 +19,7 @@ module Atom # :nodoc:
       date
     end
   end
-       
+
   # ignore the man behind the curtain.
   def self.Multiple klass
     Class.new(Array) do
@@ -28,7 +28,7 @@ module Atom # :nodoc:
       def new
         item = self.class.holds.new
         self << item
-      
+
         item
       end
 
@@ -49,7 +49,7 @@ module Atom # :nodoc:
 
   # The Class' methods provide a DSL for describing Atom's structure
   #   (and more generally for describing simple namespaced XML)
-  class Element < Hash 
+  class Element < Hash
     # a REXML::Element that shares this element's extension attributes
     # and child elements
     attr_reader :extensions
@@ -94,24 +94,24 @@ module Atom # :nodoc:
       end
     end
 
-    # define an attribute 
+    # define an attribute
     def self.attrb(name, req = false) # :nodoc:
       @attrs ||= []
 
       @attrs << [name, req]
     end
- 
+
     # a little bit of magic
     def self.define_accessor(name,kind) # :nodoc:
       define_method "#{name}=".to_sym do |value|
         return unless value
-        
+
         i = if kind.ancestors.member? Atom::Element
           kind.new(value, name.to_s)
         else
           kind.new(value)
         end
-       
+
         set(name, i)
       end
     end
@@ -119,10 +119,10 @@ module Atom # :nodoc:
     # get the value of an attribute
     def [] key
       test_key key
-   
+
       super
     end
-    
+
     # set the value of an attribute
     def []= key, value
       test_key key
@@ -147,9 +147,9 @@ module Atom # :nodoc:
     def local_name # :nodoc:
       @local_name || self.class.name.split("::").last.downcase
     end
-   
+
     # convert to a REXML::Element (with no namespace)
-    def to_element 
+    def to_element
       elem = REXML::Element.new(local_name)
 
       self.class.elements.each do |name,kind,req|
@@ -183,7 +183,7 @@ module Atom # :nodoc:
 
       elem
     end
-    
+
     # convert to a REXML::Document (properly namespaced)
     def to_xml
       doc = REXML::Document.new
@@ -192,16 +192,16 @@ module Atom # :nodoc:
       doc << root
       doc
     end
-   
+
     # convert to an XML string
     def to_s
       to_xml.to_s
     end
-    
+
     def base= uri # :nodoc:
       @base = uri.to_s
     end
- 
+
     private
 
     # like +valid_key?+ but raises on failure
@@ -224,7 +224,7 @@ module Atom # :nodoc:
       instance_variable_set "@#{name}", value
     end
   end
-  
+
   # this facilitates YAML output
   class AttrEl < Atom::Element # :nodoc:
   end
@@ -252,7 +252,7 @@ module Atom # :nodoc:
       self["rel"] = "alternate"
     end
   end
- 
+
   # A category has the following attributes:
   #
   # term (required):: a string that identifies the category
@@ -274,9 +274,9 @@ module Atom # :nodoc:
     element :uri, String
     element :email, String
   end
- 
+
   # same as Atom::Author
-  class Contributor < Atom::Element 
+  class Contributor < Atom::Element
     # Author and Contributor should probably inherit from Person, but
     # oh well.
     element :name, String, true
