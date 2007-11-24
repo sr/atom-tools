@@ -89,9 +89,9 @@ END
     entry = Atom::Entry.new
 
     entry.title = "<3"
-    assert_raises(RuntimeError) { entry.title["type"] = "xhtml" }
-   
-    assert_raises(RuntimeError) do
+    assert_raises(Atom::ParseError) { entry.title["type"] = "xhtml" }
+
+    assert_raises(Atom::ParseError) do
       entry.title["type"] = "application/xhtml+xml"
     end
 

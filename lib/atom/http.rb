@@ -69,7 +69,7 @@ module Atom
       else
         @@nonce_count += 1
         nc = ('%08x' % @@nonce_count) 
-   
+
         # XXX auth-int
         data = "#{params[:nonce]}:#{nc}:#{CNONCE}:#{"auth"}:#{h(a2)}"
 

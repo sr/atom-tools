@@ -25,18 +25,18 @@ class TestTitleConformance < Test::Unit::TestCase
     feed.update!
 
     entry = feed.entries.first
-    assert_equal "html", entry.title["type"] 
+    assert_equal "html", entry.title["type"]
     assert_equal "&lt;title>", entry.title.html
   end
 
   def test_html_entity
     url = "http://atomtests.philringnalda.com/tests/item/title/html-entity.atom"
-    
+
     feed = Atom::Feed.new(url)
     feed.update!
 
     entry = feed.entries.first
-    assert_equal "html", entry.title["type"] 
+    assert_equal "html", entry.title["type"]
     assert_equal "&lt;title>", entry.title.html
   end
 
@@ -47,7 +47,7 @@ class TestTitleConformance < Test::Unit::TestCase
     feed.update!
 
     entry = feed.entries.first
-    assert_equal "html", entry.title["type"] 
+    assert_equal "html", entry.title["type"]
     assert_equal "&lt;title>", entry.title.html
   end
 
@@ -78,7 +78,7 @@ class TestTitleConformance < Test::Unit::TestCase
 
     feed = Atom::Feed.new(url)
     feed.update!
-    
+
     entry = feed.entries.first
     assert_equal "text", entry.title["type"]
     assert_equal "&lt;title&gt;", entry.title.html
@@ -86,10 +86,10 @@ class TestTitleConformance < Test::Unit::TestCase
 
   def test_xhtml_entity
     url = "http://atomtests.philringnalda.com/tests/item/title/xhtml-entity.atom"
-    
+
     feed = Atom::Feed.new(url)
     feed.update!
-    
+
     entry = feed.entries.first
     assert_equal "xhtml", entry.title["type"]
     assert_equal "&lt;title>", entry.title.html
@@ -97,10 +97,10 @@ class TestTitleConformance < Test::Unit::TestCase
 
   def test_xhtml_ncr
     url = "http://atomtests.philringnalda.com/tests/item/title/xhtml-ncr.atom"
-    
+
     feed = Atom::Feed.new(url)
     feed.update!
-    
+
     entry = feed.entries.first
     assert_equal "xhtml", entry.title["type"]
     assert_equal "&#60;title>", entry.title.html

@@ -123,10 +123,8 @@ module Atom
     def convert_contents e
       if self["type"] == "xhtml"
         @content
-      elsif self["type"] == "text" or self["type"].nil?
-        REXML::Text.normalize(@content.to_s)
-      elsif self["type"] == "html"
-        @content.to_s.gsub(/&/, "&amp;")
+      elsif self["type"] == "text" or self["type"].nil? or self["type"] == "html"
+        @content.to_s
       end
     end
 

@@ -7,12 +7,14 @@ class AtomTest < Test::Unit::TestCase
   def test_text_type_text
     entry = get_entry
 
-    entry.title = "Atom-drunk pirates run amok!"
+    entry.title = "Let's talk about <html>"
     assert_equal("text", entry.title["type"])
 
     xml = get_elements entry
 
-    assert_equal("Atom-drunk pirates run amok!", xml.elements["/entry/title"].text)
+    assert_equal("Let's talk about <html>", xml.elements["/entry/title"].text)
+
+    assert_match('&lt;', entry.to_s)
   end
 
   def test_text_type_html
@@ -25,6 +27,8 @@ class AtomTest < Test::Unit::TestCase
 
     assert_equal("Atom-drunk pirates<br>run amok!", xml.elements["/entry/title"].text)
     assert_equal("html", xml.elements["/entry/title"].attributes["type"])
+
+    assert_match('&lt;', entry.to_s)
   end
 
   def test_text_type_xhtml
@@ -39,6 +43,8 @@ class AtomTest < Test::Unit::TestCase
 
     assert_equal(XHTML::NS, xml.elements["/entry/title/div"].namespace)
     assert_equal("run amok", xml.elements["/entry/title/div/em"].text)
+
+    assert_match('<em>', entry.to_s)
   end
 
   def test_html_text_with_entities
