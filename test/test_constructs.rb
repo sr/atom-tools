@@ -26,7 +26,7 @@ END
     # Hpricot is imperfect; for now I'll just test that it's parseable
     assert_instance_of Array, xhtml
     assert_instance_of REXML::Element, xhtml.first
- 
+
 =begin
     assert_equal 2, xhtml.length
 
@@ -73,7 +73,7 @@ END
     assert_equal "html", entry.title["type"]
     assert_equal "<3", entry.title.to_s
     assert_equal "&lt;3", entry.title.html
-    
+
     title = entry.to_xml.root.children.first
     assert_equal "<3", title.text
 =end
@@ -132,7 +132,7 @@ END
 
     assert_raises(ArgumentError) { entry.authors << "test" }
     assert_raises(ArgumentError) { entry.authors << link }
-    
+
     entry.links << link
 
     assert_equal 1, entry.links.length

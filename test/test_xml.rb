@@ -10,6 +10,8 @@ class AtomTest < Test::Unit::TestCase
     entry.title = "Let's talk about <html>"
     assert_equal("text", entry.title["type"])
 
+    assert_match('&lt;', entry.title.xml.to_s)
+
     xml = get_elements entry
 
     assert_equal("Let's talk about <html>", xml.elements["/entry/title"].text)

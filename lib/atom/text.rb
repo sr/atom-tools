@@ -59,7 +59,7 @@ module Atom
       if self["type"] == "xhtml"
         @content.children
       elsif self["type"] == "text"
-        [self.to_s]
+        [REXML::Text.new(self.to_s)]
       elsif self["type"] == "html"
         begin
           require "hpricot"
