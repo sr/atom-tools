@@ -17,7 +17,7 @@ module Atom
         xml.root
       elsif xml.is_a? REXML::Element
         xml
-      else 
+      else
         begin
           REXML::Document.new(xml)
         rescue REXML::ParseException
@@ -27,12 +27,12 @@ module Atom
 
       xml.fill_text_construct(ws, "title")
 
-      REXML::XPath.match( rxml, 
+      REXML::XPath.match( rxml,
                           "./app:collection",
                           {"app" => Atom::PP_NS} ).each do |col_el|
         # absolutize relative URLs
         url = base.to_uri + col_el.attributes["href"].to_uri
-       
+
         coll = Atom::Collection.new(url, http)
 
         col_el.fill_text_construct(coll, "title")
@@ -47,7 +47,7 @@ module Atom
         end
 
         coll.accepts = (accepts.empty? ? ["application/atom+xml;type=entry"] : accepts)
-        
+
         ws.collections << coll
       end
 
@@ -55,7 +55,7 @@ module Atom
     end
 
     def to_element # :nodoc:
-      root = REXML::Element.new "workspace" 
+      root = REXML::Element.new "workspace"
 
       if self.title
         title = self.title.to_element
@@ -71,7 +71,7 @@ module Atom
         title = coll.title.to_element
         title.name = "atom:title"
         el << title
-       
+
         unless coll.accepts.nil?
           coll.accepts.each do |acc|
             accept = REXML::Element.new "accept"
@@ -88,7 +88,7 @@ module Atom
   end
 
   # Atom::Service represents an Atom Publishing Protocol service
-  # document. Its only child is #workspaces, which is an Array of 
+  # document. Its only child is #workspaces, which is an Array of
   # Atom::Workspace s
   class Service < Atom::Element
     element :workspaces, Atom::Multiple(Atom::Workspace)
@@ -96,7 +96,7 @@ module Atom
     # retrieves and parses an Atom service document.
     def initialize(service_url = "", http = Atom::HTTP.new)
       super("service")
-      
+
       @http = http
 
       return if service_url.empty?
@@ -129,7 +129,7 @@ module Atom
         xml.root
       elsif xml.is_a? REXML::Element
         xml
-      else 
+      else
         REXML::Document.new(xml)
       end
 
@@ -144,10 +144,10 @@ module Atom
       self
     end
 
-    # serialize to a (namespaced) REXML::Document 
+    # serialize to a (namespaced) REXML::Document
     def to_xml
       doc = REXML::Document.new
-      
+
       root = REXML::Element.new "service"
       root.add_namespace Atom::PP_NS
       root.add_namespace "atom", Atom::NS

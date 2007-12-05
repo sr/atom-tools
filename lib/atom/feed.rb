@@ -21,9 +21,9 @@ module Atom
   # generator:: the agent used to generate a feed
   # icon:: an IRI identifying an icon which visually identifies a feed (1:1 aspect ratio, looks OK small)
   # logo:: an IRI identifying an image which visually identifies a feed (2:1 aspect ratio)
-  # rights:: rights held in and over a feed (Atom::Text)  
+  # rights:: rights held in and over a feed (Atom::Text)
   #
-  # There are also +links+, +categories+, +authors+, +contributors+ 
+  # There are also +links+, +categories+, +authors+, +contributors+
   # and +entries+, each of which is an Array of its respective type and
   # can be used thusly:
   #
@@ -36,14 +36,14 @@ module Atom
     attr_reader :prev
     # the Atom::Feed pointed to by link[@rel='next']
     attr_reader :next
-   
+
     # conditional get information from the last fetch
     attr_reader :etag, :last_modified
 
     element :id, String, true
     element :title, Atom::Text, true
     element :subtitle, Atom::Text
-   
+
     element :updated, Atom::Time, true
 
     element :links, Atom::Multiple(Atom::Link)
@@ -57,7 +57,7 @@ module Atom
     element :logo, String
 
     element :rights, Atom::Text
-    
+
     element :entries, Atom::Multiple(Atom::Entry)
 
     include Enumerable
@@ -108,7 +108,7 @@ module Atom
     # (see <http://www.ietf.org/internet-drafts/draft-nottingham-atompub-feed-history-05.txt>)
     def get_everything!
       self.update!
-  
+
       prev = @prev
       while prev
         prev.update!
@@ -136,7 +136,7 @@ module Atom
       end
     end
 
-    # like #merge, but in place 
+    # like #merge, but in place
     def merge! other_feed
       [:id, :title, :subtitle, :updated, :rights, :logo, :icon].each { |p|
         self.send("#{p}=", other_feed.send("#{p}"))
@@ -157,7 +157,7 @@ module Atom
       feed = self.clone
 
       feed.merge! other_feed
-      
+
       feed
     end
 
@@ -167,7 +167,7 @@ module Atom
     # (note that this is different from Atom::Entry#updated!
     def update!
       raise(RuntimeError, "can't fetch without a uri.") unless @uri
-     
+
       res = @http.get(@uri, "Accept" => "application/atom+xml")
 
       if @etag and res['etag'] == @etag
@@ -180,8 +180,8 @@ module Atom
       end
 
       # we'll be forgiving about feed content types.
-      res.validate_content_type(["application/atom+xml", 
-                                  "application/xml", 
+      res.validate_content_type(["application/atom+xml",
+                                  "application/xml",
                                   "text/xml"])
 
       @etag = res["ETag"] if res["ETag"]
@@ -206,7 +206,7 @@ module Atom
         @next = Feed.new(abs_uri.to_s, @http)
       end
 
-      link = coll.links.find { |l| l["rel"] == "previous" and l["type"] == "application/atom+xml" } 
+      link = coll.links.find { |l| l["rel"] == "previous" and l["type"] == "application/atom+xml" }
       if link
         abs_uri = @uri + link["href"]
         @prev = Feed.new(abs_uri.to_s, @http)
@@ -215,7 +215,7 @@ module Atom
       self
     end
 
-    # adds an entry to this feed. if this feed already contains an 
+    # adds an entry to this feed. if this feed already contains an
     # entry with the same id, the newest one is used.
     def << entry
       existing = entries.find do |e|

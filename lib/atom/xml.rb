@@ -25,17 +25,17 @@ module REXML # :nodoc: all
     def get_atom_element name
       XPath.first(self, "./atom:#{name}", { "atom" => Atom::NS })
     end
-    
+
     def each_atom_element name
       XPath.each(self, "./atom:#{name}", { "atom" => Atom::NS }) do |elem|
         yield elem
       end
     end
-   
+
     def copy_extensions(coll)
       # XXX also look for attributes
-      children.find_all do |child| 
-        child.respond_to? :namespace and child.namespace != Atom::NS 
+      children.find_all do |child|
+        child.respond_to? :namespace and child.namespace != Atom::NS
       end.each do |elem|
         e = elem.dup
 
@@ -57,7 +57,7 @@ module REXML # :nodoc: all
         nil
       end
     end
-  
+
     # a workaround for the odd way in which REXML handles namespaces
     # returns the value of the attribute +name+ that's in the same namespace as this element
     def ns_attr name
@@ -163,7 +163,7 @@ module REXML # :nodoc: all
       {"link" => entry.links, "category" => entry.categories}.each do |k,v|
         fill_attr_element(entry, v, k)
       end
-      
+
       copy_extensions(entry.extensions)
 
       entry
@@ -176,14 +176,14 @@ module REXML # :nodoc: all
       end
 
       feed = Atom::Feed.new
-      
+
       feed.base = if attributes["xml:base"]
         (URI.parse(base) + attributes["xml:base"]).to_s
       else
         # go with the URL we were passed in
         base
       end
-      
+
       # Text constructs
       feed.class.elements.find_all { |n,k,r| k.ancestors.member? Atom::Text }.each do |n,k,r|
         fill_text_construct(feed, n)
@@ -200,7 +200,7 @@ module REXML # :nodoc: all
       {"link" => feed.links, "category" => feed.categories}.each do |k,v|
         fill_attr_element(feed, v, k)
       end
-     
+
       each_atom_element("entry") do |elem|
         feed << elem.to_atom_entry(feed.base)
       end
