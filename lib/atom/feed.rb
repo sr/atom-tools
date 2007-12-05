@@ -197,19 +197,19 @@ module Atom
         return self
       end
 
-      coll = Atom::Feed.parse(coll, self.base.to_s)
+      coll = self.class.parse(coll, self.base.to_s)
       merge! coll
 
       link = coll.links.find { |l| l["rel"] == "next" and l["type"] == "application/atom+xml" }
       if link
         abs_uri = @uri + link["href"]
-        @next = Feed.new(abs_uri.to_s, @http)
+        @next = self.class.new(abs_uri.to_s, @http)
       end
 
       link = coll.links.find { |l| l["rel"] == "previous" and l["type"] == "application/atom+xml" }
       if link
         abs_uri = @uri + link["href"]
-        @prev = Feed.new(abs_uri.to_s, @http)
+        @prev = self.class.new(abs_uri.to_s, @http)
       end
 
       self

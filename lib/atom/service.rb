@@ -7,7 +7,7 @@ require "atom/collection"
 module Atom
   # an Atom::Workspace has a #title (Atom::Text) and #collections, an Array of Atom::Collection s
   class Workspace < Atom::Element
-    element :collections, Atom::Multiple(Atom::Collection)
+    element :collections, Atom::Multiple(Atom::Feed)
     element :title, Atom::Text
 
     def self.parse(xml, base = "", http = Atom::HTTP.new) # :nodoc:
