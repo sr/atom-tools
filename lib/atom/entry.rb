@@ -46,6 +46,7 @@ module Atom
 
     element :published, Atom::Time
     element :updated, Atom::Time, true
+    element :edited, Atom::Time, true
 
     element :summary, Atom::Text
 
@@ -83,6 +84,13 @@ module Atom
     # (note that this is different from Atom::Feed#update!)
     def updated!
       self.updated = Time.now
+    end
+
+    # declare that this entry has updated
+    #
+    # (note that this is different from Atom::Feed#update!)
+    def edited!
+      self.edited = Time.now
     end
 
     # categorize the entry with each of an array or a space-separated

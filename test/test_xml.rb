@@ -98,6 +98,23 @@ class AtomTest < Test::Unit::TestCase
     assert((Time.parse("1970-01-01") < entry.updated), "<updated/> is not updated")
   end
 
+  def test_edited
+    entry = get_entry
+    assert entry.respond_to?(:edited)
+    assert entry.respond_to?(:edited!)
+
+    entry.edited = "1990-04-07"
+    assert entry.edited.is_a?(Time)
+
+    xml = get_elements entry
+
+    assert_match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/, xml.elements["//edited"].text, 
+      "atom:edited isn't in xsd:datetime format")
+
+    entry.edited!
+    assert((Time.parse("1990-04-07") < entry.edited), "<edited/> is not updated")
+  end
+
   def test_out_of_line
     entry = get_entry
 
