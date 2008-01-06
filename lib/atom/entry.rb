@@ -46,7 +46,6 @@ module Atom
 
     element :published, Atom::Time
     element :updated, Atom::Time, true
-    element :edited, Atom::Time, true
 
     element :summary, Atom::Text
 
@@ -86,11 +85,9 @@ module Atom
       self.updated = Time.now
     end
 
-    # declare that this entry has updated
-    #
-    # (note that this is different from Atom::Feed#update!)
+    # declare that this entry has been edited 
     def edited!
-      self.edited = Time.now
+      self.edited= Time.now
     end
 
     # categorize the entry with each of an array or a space-separated
@@ -114,6 +111,34 @@ module Atom
       rescue
         nil
       end
+    end
+
+    # NOTE: check that url is a valid URI?
+    def edit_url=(url)
+      link = Atom::Link.new
+      link['href'] = url
+      link['rel'] = 'edit'
+      begin
+        edit_link = self.links.find { |link| link['rel'] = 'edit' }
+        edit_link['href'] = url
+      rescue
+        links << link
+      end
+    end
+
+    def edited=(time)
+      element = REXML::XPath.first(extensions, 'app:edited', {'app' => PP_NS})
+      unless element
+        element = REXML::Element.new('edited')
+        element.add_namespace Atom::PP_NS
+        extensions << element 
+      end
+      element.text = Atom::Time.new(time) 
+    end
+
+    def edited
+      element = REXML::XPath.first(extensions, 'app:edited', {'app' => PP_NS})
+      element ? Atom::Time.new(element.text) : nil
     end
 
     def draft

@@ -1,6 +1,5 @@
+$:.unshift 'lib/', File.dirname(__FILE__) + '/../lib'
 require "test/unit"
-
-# for entry.edit_url
 require "atom/service"
 
 class AtomTest < Test::Unit::TestCase
@@ -100,14 +99,14 @@ class AtomTest < Test::Unit::TestCase
 
   def test_edited
     entry = get_entry
-    assert entry.respond_to?(:edited)
-    assert entry.respond_to?(:edited!)
+    
+    assert_nil entry.edited
 
     entry.edited = "1990-04-07"
     assert entry.edited.is_a?(Time)
 
     xml = get_elements entry
-
+    assert_equal(Atom::PP_NS, xml.elements["/entry/edited"].namespace)
     assert_match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/, xml.elements["//edited"].text, 
       "atom:edited isn't in xsd:datetime format")
 
@@ -406,6 +405,9 @@ END
     entry = Atom::Entry.parse(doc)
 
     assert_equal("http://necronomicorp.com/nil", entry.edit_url)
+
+    entry.edit_url = "http://necronomicorp.com/foo"
+    assert_equal "http://necronomicorp.com/foo", entry.edit_url
   end
 
   def assert_has_category xml, term
