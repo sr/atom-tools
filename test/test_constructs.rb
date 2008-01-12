@@ -138,6 +138,17 @@ END
     assert_equal 1, entry.links.length
   end
 
+  def test_nice_multiple
+    entry = Atom::Entry.new
+
+    entry.authors.new :name => 'Brendan Taylor', :email => 'fake@fake.com', :uri => 'http://necronomicorp.com/bct'
+    entry.authors.new :name => 'some jerk'
+
+    assert_equal 2, entry.authors.length
+
+    assert_equal 'Brendan Taylor', entry.authors.first.name
+  end
+
   require "date"
   def test_date_construct
     today = Date.today

@@ -25,8 +25,8 @@ module Atom # :nodoc:
     Class.new(Array) do
       @class = klass
 
-      def new
-        item = self.class.holds.new
+      def new *args
+        item = self.class.holds.new *args
         self << item
 
         item
@@ -223,6 +223,15 @@ module Atom # :nodoc:
   end
 
   class AttrEl < Atom::Element # :nodoc:
+    def initialize h = {}
+      super()
+
+      self.class.attrs.each do |a,req|
+        if h.has_key? a.to_sym
+          self[a.to_s] = h[a.to_sym]
+        end
+      end
+    end
   end
 
   # A link has the following attributes:
@@ -241,11 +250,11 @@ module Atom # :nodoc:
     attrb :title
     attrb :length
 
-    def initialize # :nodoc:
+    def initialize *args # :nodoc:
       super
 
       # just setting a default
-      self["rel"] = "alternate"
+      self["rel"] = "alternate" unless self["rel"]
     end
   end
 
@@ -269,6 +278,16 @@ module Atom # :nodoc:
     element :name, String, true
     element :uri, String
     element :email, String
+
+    def initialize h = {}
+      super()
+
+      self.class.elements.each do |e,x,y|
+        if h.has_key? e.to_sym
+          self.send("#{e}=".to_sym, h[e.to_sym])
+        end
+      end
+    end
   end
 
   # same as Atom::Author
@@ -278,5 +297,15 @@ module Atom # :nodoc:
     element :name, String, true
     element :uri, String
     element :email, String
+
+    def initialize h = {}
+      super()
+
+      self.class.elements.each do |e,x,y|
+        if h.has_key? e.to_sym
+          self.send("#{e}=".to_sym, h[e.to_sym])
+        end
+      end
+    end
   end
 end
