@@ -29,6 +29,7 @@ module Atom
   #
   #   entry = feed.entries.new
   #   entry.title = "blah blah blah"
+  #
   class Feed < Atom::Element
     attr_reader :uri
 

@@ -27,8 +27,8 @@ module Atom
   # each of which is an Array of its respective type and can be used
   # thusly:
   #
-  #   author = entry.authors.new
-  #   author.name = "Captain Kangaroo"
+  #   author = entry.authors.new :name => "Captain Kangaroo", :email => "kanga@example.net"
+  #
   class Entry < Atom::Element
     # the master list of standard children and the types they map to
     element :id, String, true
