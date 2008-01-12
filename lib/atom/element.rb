@@ -57,6 +57,11 @@ module Atom # :nodoc:
     # this element's xml:base
     attr_accessor :base
 
+    # eg. 'entry' or 'content' or 'summary'
+    #    this is needed to properly serialize things like summary that don't have
+    #    their own class
+    attr_accessor :local_name # :nodoc:
+
     # this element's attributes
     def self.attrs # :nodoc:
       @attrs || []
@@ -106,11 +111,8 @@ module Atom # :nodoc:
       define_method "#{name}=".to_sym do |value|
         return unless value
 
-        i = if kind.ancestors.member? Atom::Element
-          kind.new(value, name.to_s)
-        else
-          kind.new(value)
-        end
+        i = kind.new(value)
+        i.local_name = name.to_s if i.respond_to? 'local_name='
 
         set(name, i)
       end
@@ -131,9 +133,9 @@ module Atom # :nodoc:
     end
 
     # internal junk you probably don't care about
-    def initialize name = nil # :nodoc:
+    def initialize # :nodoc:
       @extensions = REXML::Element.new("extensions")
-      @local_name = name
+      @local_name = self.class.name.split("::").last.downcase
 
       self.class.elements.each do |name,kind,req|
         if kind.respond_to? :single?
@@ -141,11 +143,6 @@ module Atom # :nodoc:
           set(name, kind.new)
         end
       end
-    end
-
-    # eg. "feed" or "entry" or "updated" or "title" or ...
-    def local_name # :nodoc:
-      @local_name || self.class.name.split("::").last.downcase
     end
 
     # convert to a REXML::Element (with no namespace)
@@ -225,7 +222,6 @@ module Atom # :nodoc:
     end
   end
 
-  # this facilitates YAML output
   class AttrEl < Atom::Element # :nodoc:
   end
 
@@ -245,8 +241,8 @@ module Atom # :nodoc:
     attrb :title
     attrb :length
 
-    def initialize name = nil # :nodoc:
-      super name
+    def initialize # :nodoc:
+      super
 
       # just setting a default
       self["rel"] = "alternate"

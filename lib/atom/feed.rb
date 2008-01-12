@@ -92,7 +92,7 @@ module Atom
         self.base = feed_uri
       end
 
-      super "feed"
+      super()
     end
 
     # iterates over a feed's entries

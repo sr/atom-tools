@@ -11,7 +11,7 @@ module Atom
     element :title, Atom::Text
 
     def self.parse(xml, base = "", http = Atom::HTTP.new) # :nodoc:
-      ws = Atom::Workspace.new("workspace")
+      ws = Atom::Workspace.new
 
       rxml = if xml.is_a? REXML::Document
         xml.root
@@ -95,7 +95,7 @@ module Atom
 
     # retrieves and parses an Atom service document.
     def initialize(service_url = "", http = Atom::HTTP.new)
-      super("service")
+      super()
 
       @http = http
 

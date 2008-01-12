@@ -20,12 +20,12 @@ module Atom
   class Text < Atom::Element
     attrb :type
 
-    def initialize value, name # :nodoc:
+    def initialize value # :nodoc:
       @content = value
       @content ||= "" # in case of nil
       self["type"] = "text"
 
-      super name
+      super()
     end
 
     # convenient, but not overly useful. see #html instead.

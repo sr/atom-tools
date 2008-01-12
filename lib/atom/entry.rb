@@ -50,7 +50,7 @@ module Atom
     element :summary, Atom::Text
 
     def initialize # :nodoc:
-      super "entry"
+      super
 
       # XXX I don't think I've ever actually used this
       yield self if block_given?
