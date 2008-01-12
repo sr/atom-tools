@@ -68,8 +68,8 @@ module Atom
       else
         begin
           REXML::Document.new(xml.to_s).to_atom_entry(base)
-        rescue REXML::ParseException
-          raise Atom::ParseError
+        rescue REXML::ParseException => e
+          raise Atom::ParseError, e.message
         end
       end
     end
