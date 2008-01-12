@@ -56,10 +56,12 @@ module Atom
     # If self["type"] is "html" and Hpricot is installed, it will
     # be converted to XHTML first.
     def xml
+      xml = REXML::Element.new 'div'
+
       if self["type"] == "xhtml"
-        @content.children
+        @content.children.each { |child| xml << child }
       elsif self["type"] == "text"
-        [REXML::Text.new(self.to_s)]
+        xml.text = self.to_s
       elsif self["type"] == "html"
         begin
           require "hpricot"
@@ -68,11 +70,13 @@ module Atom
         end
 
         fixed = Hpricot(self.to_s, :xhtml_strict => true)
-        REXML::Document.new("<div>#{fixed}</div>").root.children
+        xml = REXML::Document.new("<div>#{fixed}</div>").root
       else
         # XXX check that @type is an XML mimetype and parse it
         raise "I haven't implemented this yet"
       end
+
+      xml
     end
 
     def inspect # :nodoc:

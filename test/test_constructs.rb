@@ -24,8 +24,8 @@ END
     xhtml = entry.content.xml
 
     # Hpricot is imperfect; for now I'll just test that it's parseable
-    assert_instance_of Array, xhtml
-    assert_instance_of REXML::Element, xhtml.first
+    assert_instance_of REXML::Element, xhtml
+    assert_equal 'div', xhtml.name
 
 =begin
     assert_equal 2, xhtml.length
