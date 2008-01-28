@@ -2,6 +2,7 @@ require "rake"
 require "rake/testtask"
 require "rake/rdoctask"
 require "rake/gempackagetask"
+require "spec/rake/spectask"
 
 require "rake/clean"
 
@@ -67,7 +68,13 @@ def setup_gem(pkg_name, pkg_version, author, summary, dependencies, test_file)
   end
 end
 
-task :default => [:package]
+task :default => [:spec]
+desc 'Run all specs and generate report for spec results and code coverage'
+Spec::Rake::SpecTask.new('spec') do |t| 
+  t.spec_opts = ["--format", "html:report.html", '--diff'] 
+  t.fail_on_error = false
+  t.rcov = true
+end
 
 setup_tests
 setup_rdoc ['README', 'lib/**/*.rb']
