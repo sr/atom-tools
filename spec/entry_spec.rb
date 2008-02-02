@@ -44,6 +44,14 @@ describe Atom::Entry do
       @entry.published.should == Time.parse('2003-12-13T08:29:29-04:00')
     end
 
+    it 'should parse app:edited correctly' do
+      @entry.edited.should == Time.parse('2005-07-31T12:29:29Z')
+    end
+
+    it 'should parse app:control/draft correctly' do
+      @entry.draft?.should be_true
+    end
+
     it 'should parse rights correctly' do
       @entry.rights.should be_an_instance_of(Atom::Text)
       @entry.rights['type'].should == 'text'

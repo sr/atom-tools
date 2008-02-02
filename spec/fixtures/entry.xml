@@ -1,4 +1,5 @@
-<entry xmlns="http://www.w3.org/2005/Atom">
+<entry xmlns="http://www.w3.org/2005/Atom"
+  xmlns:app="http://www.w3.org/2007/app">
   <title>Atom draft-07 snapshot</title>
   <link rel="alternate" type="text/html"
     href="http://example.org/2005/04/02/atom"/>
@@ -8,6 +9,8 @@
   <id>tag:example.org,2003:3.2397</id>
   <updated>2005-07-31T12:29:29Z</updated>
   <published>2003-12-13T08:29:29-04:00</published>
+  <app:edited>2005-07-31T12:29:29Z</app:edited>
+  <app:control><app:draft>yes</app:draft></app:control>
   <author>
     <name>Mark Pilgrim</name>
     <uri>http://example.org/</uri>
