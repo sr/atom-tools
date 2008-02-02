@@ -142,8 +142,10 @@ module Atom
     def draft
       elem = REXML::XPath.first(extensions, "app:control/app:draft", {"app" => PP_NS})
 
-      elem and elem.text == "yes"
+      (elem && elem.text == "yes") ? true : false
     end
+
+    def draft?; draft end
 
     def draft= is_draft
       nses = {"app" => PP_NS}
@@ -171,6 +173,8 @@ module Atom
 
       is_draft
     end
+
+    def draft!; self.draft = true end
 
 # XXX this needs a test suite before it can be trusted.
 =begin
