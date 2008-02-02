@@ -8,73 +8,73 @@ describe Atom::Entry do
       @empty_entry = '<entry xmlns="http://www.w3.org/2005/Atom" />'
     end
 
-    it 'reads & parses input from an Atomized REXML::Document' do
+    it 'should read & parse input from an Atomized REXML::Document' do
       input = mock('Atomized REXML::Document')
       input.should_receive(:to_atom_entry).and_return(Atom::Entry.new)
       Atom::Entry.parse(input).should be_an_instance_of(Atom::Entry)
     end
 
-    it 'reads & parses input from an IO object' do
+    it 'should read & parse input from an IO object' do
       input = mock('IO')
       input.should_receive(:read).and_return(@empty_entry)
       Atom::Entry.parse(input).should be_an_instance_of(Atom::Entry)
     end
 
-    it 'reads & parses input from a string' do
+    it 'should read & parse input from a string' do
       input = mock('string')
       input.should_receive(:to_s).and_return(@empty_entry)
       Atom::Entry.parse(input).should be_an_instance_of(Atom::Entry)
     end
 
-    it 'parses title correctly' do
+    it 'should parse title correctly' do
       @entry.title.should be_an_instance_of(Atom::Text)
       @entry.title['type'].should == 'text'
       @entry.title.to_s.should == 'Atom draft-07 snapshot'
     end
 
-    it 'parses id correctly' do
+    it 'should parse id correctly' do
       @entry.id.should == 'tag:example.org,2003:3.2397'
     end
 
-    it 'parses updated correctly' do
+    it 'should parse updated correctly' do
       @entry.updated.should == Time.parse('2005-07-31T12:29:29Z')
     end
 
-    it 'parses published correctly' do
+    it 'should parse published correctly' do
       @entry.published.should == Time.parse('2003-12-13T08:29:29-04:00')
     end
 
-    it 'parses rights correctly' do
+    it 'should parse rights correctly' do
       @entry.rights.should be_an_instance_of(Atom::Text)
       @entry.rights['type'].should == 'text'
       @entry.rights.to_s.should == 'Copyright (c) 2003, Mark Pilgrim'
     end
 
-    it 'parses authors correctly' do
+    it 'should parse authors correctly' do
       @entry.authors.length.should == 1
       @entry.authors.first.name.should == 'Mark Pilgrim'
       @entry.authors.first.email.should == 'f8dy@example.com'
       @entry.authors.first.uri.should == 'http://example.org/'
     end
 
-    it 'parses contributors correctly' do
+    it 'should parse contributors correctly' do
       @entry.contributors.length.should == 2
       @entry.contributors.first.name.should == 'Sam Ruby'
       @entry.contributors[1].name.should == 'Joe Gregorio'
     end
 
-    it 'parses content correctly' do
+    it 'should parse content correctly' do
       @entry.content.should be_an_instance_of(Atom::Content)
       @entry.content['type'].should == 'xhtml'
       @entry.content.to_s.strip.should == '<p><i>[Update: The Atom draft is finished.]</i></p>'
     end
 
-    it 'parses summary correctly' do
+    it 'should parse summary correctly' do
       @entry.summary['type'].should == 'text'
       @entry.summary.to_s.should == 'Some text.'
     end
 
-    it 'parses links correctly' do
+    it 'should parse links correctly' do
       @entry.links.length.should == 2
       alternates = @entry.links.select { |l| l['rel'] == 'alternate' }
       alternates.length.should == 1
@@ -85,12 +85,12 @@ describe Atom::Entry do
       @entry.links.last['type'].should == 'audio/mpeg'
     end
 
-    it 'parses categories correctly' do
+    it 'should parse categories correctly' do
       @entry.categories.first['term'].should == 'ann'
       @entry.categories.first['scheme'].should == 'http://example.org/cats'
     end
 
-    it 'raises ParseError when invalid entry' do
+    it 'should raise ParseError when invalid entry' do
       lambda { Atom::Entry.parse('<entry/>') }.should raise_error(Atom::ParseError)
     end
   end
