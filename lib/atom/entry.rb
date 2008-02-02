@@ -115,9 +115,7 @@ module Atom
 
     # NOTE: check that url is a valid URI?
     def edit_url=(url)
-      link = Atom::Link.new
-      link['href'] = url
-      link['rel'] = 'edit'
+      link = Atom::Link.new({:href => url, :rel => 'edit'})
       begin
         edit_link = self.links.find { |link| link['rel'] = 'edit' }
         edit_link['href'] = url
