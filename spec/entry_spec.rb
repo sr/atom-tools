@@ -174,7 +174,7 @@ describe Atom::Entry do
 
     describe 'when using tags' do
       before(:each) do
-        @tags = %w(foo bar spam)
+        @tags = %w(chunky bacon ruby)
       end
 
       it 'should set categories from an array of tags' do
@@ -187,6 +187,18 @@ describe Atom::Entry do
         @entry.tag_with(@tags.join(' '))
         @entry.categories.length.should == 3
         @tags.each { |tag| @entry.categories.any? { |c| c['term'] == tag }.should be_true }
+      end
+
+      it 'should be possible to specify the delimiter when passing tags as a string' do
+        @entry.tag_with(@tags.join(','), ',')
+        @entry.categories.length.should == 3
+        @tags.each { |tag| @entry.categories.any? { |c| c['term'] == tag }.should be_true }
+      end
+
+      it 'should not create a category only once' do
+        @entry.tag_with(@tags)
+        @entry.tag_with(@tags.first)
+        @entry.categories.length.should == 3
       end
     end
   end

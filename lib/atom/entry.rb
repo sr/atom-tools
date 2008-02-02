@@ -92,11 +92,16 @@ module Atom
 
     # categorize the entry with each of an array or a space-separated
     #   string
-    def tag_with tags
-      return unless tags
-
-      (tags.is_a?(String) ? tags.split : tags).each do |tag|
-        categories.new["term"] = tag
+    def tag_with(tags, delimiter = ' ')
+      return if tags.empty?
+      tag_list = tags.is_a?(String) ? tags.split(delimiter) : tags
+      tag_list.reject! { |t| t !~ /\S/ }
+      tag_list.map! { |t| t.strip }
+      tag_list.uniq!
+      tag_list.each do |tag|
+        unless categories.any? { |category| category['term'] == tag }
+          categories.new['term'] = tag
+        end
       end
     end
 
