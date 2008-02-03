@@ -26,63 +26,68 @@ describe Atom::Entry do
       Atom::Entry.parse(input).should be_an_instance_of(Atom::Entry)
     end
 
-    it 'should parse title correctly' do
+    it 'should raise ParseError when invalid entry' do
+      lambda { Atom::Entry.parse('<entry/>') }.should raise_error(Atom::ParseError)
+    end
+
+    it 'should parse title element correctly' do
       @entry.title.should be_an_instance_of(Atom::Text)
       @entry.title['type'].should == 'text'
       @entry.title.to_s.should == 'Atom draft-07 snapshot'
     end
 
-    it 'should parse id correctly' do
+    it 'should parse id element correctly' do
       @entry.id.should == 'tag:example.org,2003:3.2397'
     end
 
-    it 'should parse updated correctly' do
+    it 'should parse updated element correctly' do
       @entry.updated.should == Time.parse('2005-07-31T12:29:29Z')
     end
 
-    it 'should parse published correctly' do
+    it 'should parse published element correctly' do
       @entry.published.should == Time.parse('2003-12-13T08:29:29-04:00')
     end
 
-    it 'should parse app:edited correctly' do
+    it 'should parse app:edited element correctly' do
       @entry.edited.should == Time.parse('2005-07-31T12:29:29Z')
     end
 
-    it 'should parse app:control/draft correctly' do
+    it 'should parse app:control/draft element correctly' do
       @entry.draft?.should be_true
     end
 
-    it 'should parse rights correctly' do
+    it 'should parse rights element correctly' do
       @entry.rights.should be_an_instance_of(Atom::Text)
       @entry.rights['type'].should == 'text'
       @entry.rights.to_s.should == 'Copyright (c) 2003, Mark Pilgrim'
     end
 
-    it 'should parse authors correctly' do
+    it 'should parse author element correctly' do
       @entry.authors.length.should == 1
       @entry.authors.first.name.should == 'Mark Pilgrim'
       @entry.authors.first.email.should == 'f8dy@example.com'
       @entry.authors.first.uri.should == 'http://example.org/'
     end
 
-    it 'should parse contributors correctly' do
+    it 'should parse contributor element correctly' do
       @entry.contributors.length.should == 2
       @entry.contributors.first.name.should == 'Sam Ruby'
       @entry.contributors[1].name.should == 'Joe Gregorio'
     end
 
-    it 'should parse content correctly' do
+    it 'should parse content element correctly' do
       @entry.content.should be_an_instance_of(Atom::Content)
       @entry.content['type'].should == 'xhtml'
+      @entry.content.base.should == 'http://diveintomark.org/'
       @entry.content.to_s.strip.should == '<p><i>[Update: The Atom draft is finished.]</i></p>'
     end
 
-    it 'should parse summary correctly' do
+    it 'should parse summary element correctly' do
       @entry.summary['type'].should == 'text'
       @entry.summary.to_s.should == 'Some text.'
     end
 
-    it 'should parse links correctly' do
+    it 'should parse links element correctly' do
       @entry.links.length.should == 2
       alternates = @entry.links.select { |l| l['rel'] == 'alternate' }
       alternates.length.should == 1
@@ -93,17 +98,13 @@ describe Atom::Entry do
       @entry.links.last['type'].should == 'audio/mpeg'
     end
 
-    it 'should parse categories correctly' do
+    it 'should parse category element correctly' do
       @entry.categories.first['term'].should == 'ann'
       @entry.categories.first['scheme'].should == 'http://example.org/cats'
     end
-
-    it 'should raise ParseError when invalid entry' do
-      lambda { Atom::Entry.parse('<entry/>') }.should raise_error(Atom::ParseError)
-    end
   end
 
-  describe 'update element' do
+  describe 'updated element' do
     before(:each) do
       @entry = Atom::Entry.new
     end
@@ -122,13 +123,13 @@ describe Atom::Entry do
       @entry.updated.to_s.should =~ /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/
     end
 
-    it 'should set updated element when it receives #updated!' do
+    it 'should be declarable as updated using #updated!' do
       @entry.updated!
       @entry.updated.should > Time.parse('1990-04-07')
     end
   end
 
-  describe 'edited element' do
+  describe 'app:edited element' do
     before(:each) do
       @entry = Atom::Entry.new
     end
@@ -152,7 +153,7 @@ describe Atom::Entry do
       @entry.to_xml.elements['/entry/edited'].namespace.should == Atom::PP_NS
     end
 
-    it 'should set edited element when it receives #updated!' do
+    it 'should be declarable as edited using #edited!' do
       @entry.edited!
       @entry.edited.should > Time.parse('1990-04-07')
     end
@@ -167,7 +168,7 @@ describe Atom::Entry do
       @entry.categories.should be_empty
     end
 
-    it 'should increase total count when adding new category' do
+    it 'should increase total count when adding a new category' do
       @count = @entry.categories.length
       @entry.categories.new['term'] = 'foo'
       @entry.categories.length.should == @count + 1
@@ -203,7 +204,7 @@ describe Atom::Entry do
         @tags.each { |tag| @entry.categories.any? { |c| c['term'] == tag }.should be_true }
       end
 
-      it 'should not create a category only once' do
+      it 'should create a category only once' do
         @entry.tag_with(@tags)
         @entry.tag_with(@tags.first)
         @entry.categories.length.should == 3
@@ -220,7 +221,7 @@ describe Atom::Entry do
       @entry.edit_url.should be_nil
     end
 
-    it 'should be easily setable' do
+    it 'should be easily definable' do
       @entry.edit_url = 'http://example.org/entries/foo'
       @entry.edit_url.should == 'http://example.org/entries/foo'
     end
@@ -235,14 +236,14 @@ describe Atom::Entry do
       @entry.should_not be_draft
     end
 
-    it 'should be setable using draft=' do
+    it 'should be definable using draft=' do
       @entry.draft = true
       @entry.should be_draft
       @entry.draft = false
       @entry.should_not be_draft
     end
 
-    it 'should be setable using #draft!' do
+    it 'should be declarable as a draft using #draft!' do
       @entry.draft!
       @entry.should be_draft
     end
