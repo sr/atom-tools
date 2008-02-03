@@ -93,7 +93,7 @@ module Atom
     # categorize the entry with each of an array or a space-separated
     #   string
     def tag_with(tags, delimiter = ' ')
-      return if tags.empty?
+      return if tags.nil? || tags.empty?
       tag_list = tags.is_a?(String) ? tags.split(delimiter) : tags
       tag_list.reject! { |t| t !~ /\S/ }
       tag_list.map! { |t| t.strip }
