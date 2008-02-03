@@ -1,3 +1,6 @@
+require 'rubygems'
+require 'spec'
+
 $:.unshift 'lib/', File.dirname(__FILE__) + '/../lib'
 
 def fixtures(name)
