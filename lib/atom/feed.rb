@@ -72,7 +72,7 @@ module Atom
       if xml.respond_to? :to_atom_entry
         xml.to_atom_feed(base)
       elsif xml.respond_to? :read
-        self.parse(xml.read)
+        self.parse(xml.read, base)
       else
         begin
           REXML::Document.new(xml.to_s).to_atom_feed(base)
