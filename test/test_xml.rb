@@ -380,6 +380,14 @@ END
     assert_equal("http://www.tbray.org/ongoing/When/200x/2006/10/11/", entry.base)
   end
 
+  def test_relative_src
+    base_url = "http://example.org/foo/"
+    doc = "<entry xmlns='http://www.w3.org/2005/Atom'><content src='./bar'/></entry>"
+
+    entry = Atom::Entry.parse(doc, base_url)
+    assert_equal("http://example.org/foo/bar", entry.content['src'])
+  end
+
   def test_edit_url
     doc = <<END
 <entry xmlns="http://www.w3.org/2005/Atom"><link rel="edit"/></entry>

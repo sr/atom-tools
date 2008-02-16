@@ -22,10 +22,10 @@ module Atom
       raise "Cowardly refusing to POST a non-Atom::Entry" unless entry.is_a? Atom::Entry
       headers = {"Content-Type" => "application/atom+xml" }
       headers["Slug"] = slug if slug
-      
+
       @http.post(@uri, entry.to_s, headers)
     end
-  
+
     # PUT an updated version of an entry to the collection
     def put!(entry, url = entry.edit_url)
       @http.put_atom_entry(entry, url)
@@ -40,7 +40,7 @@ module Atom
     def post_media!(data, content_type, slug = nil)
       headers = {"Content-Type" => content_type}
       headers["Slug"] = slug if slug
-      
+
       @http.post(@uri, data, headers)
     end
 

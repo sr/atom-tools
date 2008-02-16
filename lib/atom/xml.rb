@@ -76,10 +76,12 @@ module REXML # :nodoc: all
         type = text.ns_attr("type")
         src = text.ns_attr("src")
 
+
         if src and name == :content
+          src = entry.base.to_uri + src if entry.base
           # the only content is out of line
           entry.send( "#{name}=".to_sym, "")
-          entry.send(name.to_sym)["src"] = src
+          entry.send(name.to_sym)["src"] = src.to_s
         elsif type == "xhtml"
           div = XPath.first(text, "./xhtml:div", { "xhtml" => XHTML::NS })
           unless div
