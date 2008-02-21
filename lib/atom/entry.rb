@@ -122,7 +122,7 @@ module Atom
     def edit_url=(url)
       link = Atom::Link.new({:href => url, :rel => 'edit'})
       begin
-        edit_link = self.links.find { |link| link['rel'] = 'edit' }
+        edit_link = self.links.find { |link| link['rel'] == 'edit' }
         edit_link['href'] = url
       rescue
         links << link

@@ -248,6 +248,14 @@ describe Atom::Entry do
       @entry.should be_draft
     end
 
+    it 'should not erase other link' do
+      @entry.links.new :rel => 'related', :href => 'http://example.org'
+
+      @entry.edit_url = 'http://example.com/entries/foo'
+      @entry.links.length.should == 2
+      @entry.links.should include(link)
+    end
+
     it 'should have APP namespace' do
       @entry.draft!
       @entry.to_xml.elements['/entry/control/draft'].namespace.should == Atom::PP_NS
