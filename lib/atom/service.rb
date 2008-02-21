@@ -208,7 +208,7 @@ module Atom
       atom = REXML::XPath.first(doc, '/rsd/service/apis/api[@name="Atom"]')
 
       unless atom
-        raise AutodiscoveryFailure "couldn't find an Atom link in the RSD"
+        raise AutodiscoveryFailure, "couldn't find an Atom link in the RSD"
       end
 
       url = url.to_uri + atom.attributes['apiLink']

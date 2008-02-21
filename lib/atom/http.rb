@@ -68,7 +68,7 @@ module Atom
         response = kd(h(a1), params[:nonce] + ":" + h(a2))
       else
         @@nonce_count += 1
-        nc = ('%08x' % @@nonce_count) 
+        nc = ('%08x' % @@nonce_count)
 
         # XXX auth-int
         data = "#{params[:nonce]}:#{nc}:#{CNONCE}:#{"auth"}:#{h(a2)}"
@@ -77,7 +77,7 @@ module Atom
       end
 
       header = %Q<Digest username="#{user}", uri="#{req.path}", realm="#{params[:realm]}", response="#{response}", nonce="#{params[:nonce]}">
-   
+
       if params[:opaque]
         header += %Q<, opaque="#{params[:opaque]}">
       end
@@ -107,7 +107,7 @@ module Atom
   #
   # This object can be used on its own, or passed to an Atom::Service,
   # Atom::Collection or Atom::Feed, where it will be used for requests.
-  # 
+  #
   # All its HTTP methods return a Net::HTTPResponse
   class HTTP
     include DigestAuth
@@ -118,14 +118,14 @@ module Atom
     # the token used for Google's AuthSub authentication
     attr_accessor :token
 
-    # when set to :basic, :wsse or :authsub, this will send an 
-    # Authentication header with every request instead of waiting for a 
-    # challenge from the server. 
-    # 
+    # when set to :basic, :wsse or :authsub, this will send an
+    # Authentication header with every request instead of waiting for a
+    # challenge from the server.
+    #
     # be careful; always_auth :basic will send your username and
     # password in plain text to every URL this object requests.
     #
-    # :digest won't work, since Digest authentication requires an 
+    # :digest won't work, since Digest authentication requires an
     # initial challenge to generate a response
     #
     # defaults to nil
@@ -249,7 +249,7 @@ module Atom
       now = Time.now.gmtime.iso8601
 
       digest = [Digest::SHA1.digest(nonce + now + pass)].pack("m").chomp
-      
+
       req['X-WSSE'] = %Q<UsernameToken Username="#{user}", PasswordDigest="#{digest}", Nonce="#{nonce_enc}", Created="#{now}">
       req["Authorization"] = 'WSSE profile="UsernameToken"'
     end
@@ -304,7 +304,7 @@ module Atom
       end
 
       req, url = new_request(url_s, method, headers)
-   
+
       # two reasons to authenticate;
       if @always_auth
         self.send("#{@always_auth}_authenticate", req, url)
@@ -324,7 +324,7 @@ module Atom
 
       case res
       when Net::HTTPUnauthorized
-        if @always_auth or www_authenticate or not res["WWW-Authenticate"] # XXX and not stale (Digest only) 
+        if @always_auth or www_authenticate or not res["WWW-Authenticate"] # XXX and not stale (Digest only)
           # we've tried the credentials you gave us once
           # and failed, or the server gave us no way to fix it
           raise Unauthorized, "Your authorization was rejected"
@@ -361,12 +361,12 @@ module Atom
 
       res
     end
-    
+
     def new_request(url_string, method, init_headers = {})
       headers = { "User-Agent" => UA }.merge(init_headers)
-      
+
       url = url_string.to_uri
-       
+
       rel = url.path
       rel += "?" + url.query if url.query
 
