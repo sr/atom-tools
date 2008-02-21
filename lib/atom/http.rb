@@ -163,7 +163,7 @@ module Atom
     def get url, headers = {}
       http_request(url, Net::HTTP::Get, nil, headers)
     end
-  
+
     # POSTs body to an url
     def post url, body, headers = {}
       http_request(url, Net::HTTP::Post, body, headers)

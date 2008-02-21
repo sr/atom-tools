@@ -5,15 +5,21 @@ require "atom/service"
 class FakeHTTP
   Response = Struct.new(:body, :code, :content_type)
 
-  def initialize table, mime_type
+  def initialize table
     @table = table
-    @mime_type = mime_type
   end
-  def get url
+
+  def get url, headers = {}
     res = Response.new
-    res.body = @table[url.to_s]
+
+    data = @table[url.to_s]
+
+    res.body = data[1]
     res.code = 200.to_s
-    res.content_type = @mime_type
+    res.content_type = data[0]
+
+    def res.validate_content_type valid; valid.member? content_type; end
+
     res
   end
 end
@@ -35,12 +41,12 @@ class AtomProtocolTest < Test::Unit::TestCase
   </workspace>
 </service>
 END
-    
+
     service = Atom::Service.new
     service.parse doc
 
     ws = service.workspaces.first
-    assert_equal "My Blog", ws.title.to_s 
+    assert_equal "My Blog", ws.title.to_s
 
     coll = ws.collections.first
     assert_equal URI.parse("http://example.org/myblog/entries"), coll.uri
@@ -83,10 +89,10 @@ END
 
     assert_equal "http://www.w3.org/2007/app", doc.root.namespace
 
-    ws = REXML::XPath.first( doc.root, 
-                              "/app:service/app:workspace", 
+    ws = REXML::XPath.first( doc.root,
+                              "/app:service/app:workspace",
                               nses )
-   
+
     title = REXML::XPath.first( ws, "./atom:title", nses)
 
     assert_equal "Workspace 1", title.text
@@ -126,5 +132,49 @@ END
     collection = Atom::Collection.new("http://necronomicorp.com/testatom?atom")
 
     assert_equal [], collection.links
+  end
+
+  def test_autodiscover_service_link
+    http = FakeHTTP.new \
+      'http://example.org/' => [ 'text/html', '<html><link rel="service" href="svc">' ],
+      'http://example.org/xhtml' => [ 'text/html', '<html><head><link rel="service" href="svc"/></head></html>' ],
+      'http://example.org/svc' => [ 'application/atomsvc+xml', '<service xmlns="http://www.w3.org/2007/app"/>' ]
+
+    svc = Atom::Service.discover 'http://example.org/', http
+    assert_instance_of Atom::Service, svc
+
+    svc = Atom::Service.discover 'http://example.org/xhtml', http
+    assert_instance_of Atom::Service, svc
+  end
+
+  def test_autodiscover_rsd
+    http = FakeHTTP.new \
+      'http://example.org/' => [ 'text/html', '<html><link rel="EditURI" href="rsd">' ],
+      'http://example.org/svc' => [ 'application/atomsvc+xml', '<service xmlns="http://www.w3.org/2007/app"/>' ],
+      'http://example.org/rsd' => [ 'text/xml', '<rsd version="1.0" xmlns="http://archipelago.phrasewise.com/rsd"><service><apis><api name="Atom" apiLink="svc" /></apis></service></rsd>' ]
+
+    svc = Atom::Service.discover 'http://example.org/', http
+    assert_instance_of Atom::Service, svc
+  end
+
+  def test_autodiscover_conneg
+    http = FakeHTTP.new \
+      'http://example.org/svc' => [ 'application/atomsvc+xml', '<service xmlns="http://www.w3.org/2007/app"/>' ]
+
+    svc = Atom::Service.discover 'http://example.org/svc', http
+    assert_instance_of Atom::Service, svc
+  end
+
+  def test_cant_autodiscover
+    http = FakeHTTP.new 'http://example.org/h' => [ 'text/html', '<html>' ],
+                       'http://example.org/t' => [ 'text/plain', 'no joy.' ]
+
+    assert_raises Atom::AutodiscoveryFailure do
+      Atom::Service.discover 'http://example.org/h', http
+    end
+
+    assert_raises Atom::AutodiscoveryFailure do
+      Atom::Service.discover 'http://example.org/t', http
+    end
   end
 end
