@@ -168,7 +168,7 @@ module Atom
 
       case res.content_type
       when /application\/atomsvc\+xml/
-        Service.parse res.body
+        Service.parse res.body, url
       when /html/
         begin
           require 'hpricot'
