@@ -25,12 +25,30 @@ module Atom
     on_parse do |e,x|
       type = e.type
 
-      if type == 'xhtml'
-        x = x.elements['div']
-        raise Atom::ParseError, 'xhtml content needs div wrapper' unless x
+      if x.is_a? REXML::Element
+        if type == 'xhtml'
+          x = x.elements['div']
+          raise Atom::ParseError, 'xhtml content needs div wrapper' unless x
+
+          c = x.dup
+        else
+          c = x[0] ? x[0].value : nil
+        end
+      else
+        c = x.to_s
       end
 
-      e.instance_variable_set("@content", x.children)
+      e.instance_variable_set("@content", c)
+    end
+
+    on_build do |e,x|
+      c = e.instance_variable_get('@content')
+
+      if c.is_a? String
+        x.text = c
+      elsif c
+        x << c.dup
+      end
     end
 
     def local_init value = nil
@@ -42,7 +60,11 @@ module Atom
     end
 
     def to_s
-      @content.to_s
+      if type == 'xhtml' and @content and @content.name == 'div'
+        @content.children.to_s
+      else
+        @content.to_s
+      end
     end
 
     # returns a string suitable for dumping into an HTML document.
@@ -91,43 +113,19 @@ module Atom
       "'#{to_s}'##{self['type']}"
     end
 
-    def []= key, value # :nodoc:
-      if key == "type"
-        unless valid_type? value
-          raise Atom::ParseError, "atomTextConstruct type '#{value}' is meaningless"
+    def type= value
+      unless valid_type? value
+        raise Atom::ParseError, "atomTextConstruct type '#{value}' is meaningless"
+      end
+
+      @type = value
+      if @type == "xhtml"
+        begin
+          parse_xhtml_content
+        rescue REXML::ParseException
+          raise Atom::ParseError, "#{@content.inspect} can't be parsed as XML"
         end
-
-        if value == "xhtml"
-          begin
-            parse_xhtml_content
-          rescue REXML::ParseException
-            raise Atom::ParseError, "#{@content.inspect} can't be parsed as XML"
-          end
-        end
       end
-
-      super(key, value)
-    end
-
-    def to_element # :nodoc:
-      e = super
-
-      if self["type"] == "text"
-        e.attributes.delete "type"
-      end
-
-      # this should be done via inheritance
-      c = convert_contents e
-
-      if c.is_a? String
-        e.text = c
-      elsif c.is_a? REXML::Element
-        e << c.dup
-      else
-        raise "atom:#{local_name} can't contain type #{@content.class}"
-      end
-
-      e
     end
 
     private
@@ -178,21 +176,14 @@ module Atom
 
     atom_attrb :src
 
-    def html
-      if self["src"]
-        ""
+    def src= v
+      @content = nil
+
+      if self.base
+        @src = (self.base.to_uri + v).to_s
       else
-        super
+        @src = v
       end
-    end
-
-    def to_element
-      if self["src"]
-        element_super = Element.instance_method(:to_element)
-        return element_super.bind(self).call
-      end
-
-      super
     end
 
     private
@@ -216,6 +207,7 @@ module Atom
   end
 
   class Title < Atom::Text; is_atom_element :title; end
+  class Subtitle < Atom::Text; is_atom_element :subtitle; end
   class Summary < Atom::Text; is_atom_element :summary; end
   class Rights < Atom::Text; is_atom_element :rights; end
 end

@@ -1,6 +1,16 @@
 require "time"
 require "rexml/element"
 
+require 'uri'
+
+module URI # :nodoc: all
+  class Generic; def to_uri; self; end; end
+end
+
+class String # :nodoc:
+  def to_uri; URI.parse(self); end
+end
+
 # cribbed from metaid.rb
 class Object
    # The hidden singleton lurks behind everyone
@@ -39,6 +49,7 @@ module Atom # :nodoc:
 
       def << item
         raise ArgumentError, "this can only hold items of class #{self.class.holds}" unless item.is_a? self.class.holds
+
         super(item)
       end
 
@@ -54,6 +65,8 @@ module Atom # :nodoc:
     # this element's xml:base
     attr_accessor :base
 
+    # attaches a name and a namespace to an element
+    # MUST be called on any new element
     def self.is_element ns, name
       meta_def :self_namespace do; ns; end
       meta_def :self_name do; name.to_s; end
@@ -103,23 +116,23 @@ module Atom # :nodoc:
     end
 
     def self.parsers &block
-      @on_parse ||= []
-      @on_parse.each &block
-
       # XXX this is a bit of a hack i think
       if ancestors[1].respond_to? :parsers
         ancestors[1].parsers &block
       end
+
+      @on_parse ||= []
+      @on_parse.each &block
     end
 
     def self.builders &block
-      @on_build ||= []
-      @on_build.each &block
-
       # XXX this is a bit of a hack i think
       if ancestors[1].respond_to? :builders
         ancestors[1].builders &block
       end
+
+      @on_build ||= []
+      @on_build.each &block
     end
 
     def self.parse xml, base = ''
@@ -144,7 +157,7 @@ module Atom # :nodoc:
       end
 
       if root.attributes['xml:base']
-        base = root.attributes['xml:base']
+        base = (base.to_uri + root.attributes['xml:base'])
       end
 
       e = self.new_for_parse root
@@ -167,6 +180,10 @@ module Atom # :nodoc:
     end
 
     def build root
+      if self.base and not self.base.empty?
+        root.attributes['xml:base'] = self.base
+      end
+
       self.class.builders do |builder|
         builder.call self, root
       end
@@ -212,7 +229,7 @@ module Atom # :nodoc:
 
       self.def_set name do |time|
         unless time.respond_to? :iso8601
-          time = Time.parse(time)
+          time = Time.parse(time.to_s)
         end
 
         def time.to_s; iso8601; end
@@ -350,7 +367,9 @@ module Atom # :nodoc:
       attr_accessor name
 
       self.on_parse do |e,x|
-        e.set name, e.get_atom_attrb(x, name)
+        if v = e.get_atom_attrb(x, name)
+          e.set name, v
+        end
       end
 
       self.on_build do |e,x|
@@ -410,6 +429,13 @@ module Atom # :nodoc:
     atom_attrb :length
 
     include AttrEl
+
+    on_parse do |e,x|
+      # URL absolutization
+      if e.base and e.href
+        e.href = (e.base.to_uri + e.href).to_s
+      end
+    end
   end
 
   # A category has the following attributes:

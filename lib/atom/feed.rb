@@ -31,6 +31,8 @@ module Atom
   #   entry.title = "blah blah blah"
   #
   class Feed < Atom::Element
+    is_atom_element :feed
+
     attr_reader :uri
 
     # the Atom::Feed pointed to by link[@rel='previous']
@@ -42,8 +44,8 @@ module Atom
     attr_reader :etag, :last_modified
 
     atom_string :id
-    atom_element :title, Atom::Text
-    atom_element :subtitle, Atom::Text
+    atom_element :title, Atom::Title
+    atom_element :subtitle, Atom::Subtitle
 
     atom_time :updated
 
@@ -57,7 +59,7 @@ module Atom
     atom_string :icon
     atom_string :logo
 
-    atom_element :rights, Atom::Text
+    atom_element :rights, Atom::Rights
 
     atom_elements :entry, :entries, Atom::Entry
 
@@ -65,21 +67,6 @@ module Atom
 
     def inspect # :nodoc:
       "<#{@uri} entries: #{entries.length} title='#{title}'>"
-    end
-
-    # parses XML fetched from +base+ into an Atom::Feed
-    def self.parse xml, base = ""
-      if xml.respond_to? :to_atom_entry
-        xml.to_atom_feed(base)
-      elsif xml.respond_to? :read
-        self.parse(xml.read, base)
-      else
-        begin
-          REXML::Document.new(xml.to_s).to_atom_feed(base)
-        rescue REXML::ParseException
-          raise Atom::ParseError
-        end
-      end
     end
 
     # Create a new Feed that can be found at feed_uri and retrieved
@@ -139,9 +126,12 @@ module Atom
 
     # like #merge, but in place
     def merge! other_feed
-      [:id, :title, :subtitle, :updated, :rights, :logo, :icon].each { |p|
-        self.send("#{p}=", other_feed.send("#{p}"))
-      }
+      [:id, :title, :subtitle, :updated, :rights, :logo, :icon].each do |p|
+        v = other_feed.send("#{p}")
+        if v
+          set p, v
+        end
+      end
 
       [:links, :categories, :authors, :contributors].each do |p|
         other_feed.send("#{p}").each do |e|
@@ -198,22 +188,32 @@ module Atom
         return self
       end
 
-      coll = self.class.parse(coll, self.base.to_s)
+      coll = self.class.parse(coll.root, self.base.to_s)
       merge! coll
 
-      link = coll.links.find { |l| l["rel"] == "next" and l["type"] == "application/atom+xml" }
-      if link
-        abs_uri = @uri + link["href"]
+      if nl = next_link
+        abs_uri = @uri + nl["href"]
         @next = self.class.new(abs_uri.to_s, @http)
       end
 
-      link = coll.links.find { |l| l["rel"] == "previous" and l["type"] == "application/atom+xml" }
-      if link
-        abs_uri = @uri + link["href"]
+      if pl = previous_link
+        abs_uri = @uri + pl["href"]
         @prev = self.class.new(abs_uri.to_s, @http)
       end
 
       self
+    end
+
+    def previous_link
+      links.find do |l|
+        l.rel == "previous" and l.type.match(/^application\/atom\+xmll/)
+      end
+    end
+
+    def next_link
+      links.find do |l|
+        l.rel == "next" and l.type.match(/^application\/atom\+xmll/)
+      end
     end
 
     # adds an entry to this feed. if this feed already contains an
