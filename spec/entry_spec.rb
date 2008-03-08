@@ -1,17 +1,17 @@
 require File.dirname(__FILE__) + '/spec_helper'
 require 'atom/entry'
 
+module TestsXML
+  def read_entry_xml xpath
+    REXML::XPath.first(@entry.to_xml, xpath, { 'atom' => Atom::NS, 'app' => Atom::PP_NS })
+  end
+end
+
 describe Atom::Entry do
   describe 'when parsing' do
     before(:each) do
       @entry = Atom::Entry.parse(fixtures(:entry))
       @empty_entry = '<entry xmlns="http://www.w3.org/2005/Atom" />'
-    end
-
-    it 'should read & parse input from an Atomized REXML::Document' do
-      input = mock('Atomized REXML::Document')
-      input.should_receive(:to_atom_entry).and_return(Atom::Entry.new)
-      Atom::Entry.parse(input).should be_an_instance_of(Atom::Entry)
     end
 
     it 'should read & parse input from an IO object' do
@@ -31,7 +31,7 @@ describe Atom::Entry do
     end
 
     it 'should parse title element correctly' do
-      @entry.title.should be_an_instance_of(Atom::Text)
+      @entry.title.should be_is_a(Atom::Text)
       @entry.title['type'].should == 'text'
       @entry.title.to_s.should == 'Atom draft-07 snapshot'
     end
@@ -57,7 +57,7 @@ describe Atom::Entry do
     end
 
     it 'should parse rights element correctly' do
-      @entry.rights.should be_an_instance_of(Atom::Text)
+      @entry.rights.should be_is_a(Atom::Text)
       @entry.rights['type'].should == 'text'
       @entry.rights.to_s.should == 'Copyright (c) 2003, Mark Pilgrim'
     end
@@ -130,6 +130,8 @@ describe Atom::Entry do
   end
 
   describe 'app:edited element' do
+    include TestsXML
+
     before(:each) do
       @entry = Atom::Entry.new
     end
@@ -150,7 +152,7 @@ describe Atom::Entry do
 
     it 'should have APP namespace' do
       @entry.edited = '1990-04-07'
-      @entry.to_xml.elements['/entry/edited'].namespace.should == Atom::PP_NS
+      read_entry_xml('app:edited').namespace.should == Atom::PP_NS
     end
 
     it 'should be declarable as edited using #edited!' do
@@ -228,6 +230,8 @@ describe Atom::Entry do
   end
 
   describe 'draft element' do
+    include TestsXML
+
     before(:each) do
       @entry = Atom::Entry.new
     end
@@ -249,7 +253,7 @@ describe Atom::Entry do
     end
 
     it 'should not erase other link' do
-      @entry.links.new :rel => 'related', :href => 'http://example.org'
+      link = @entry.links.new :rel => 'related', :href => 'http://example.org'
 
       @entry.edit_url = 'http://example.com/entries/foo'
       @entry.links.length.should == 2
@@ -258,7 +262,7 @@ describe Atom::Entry do
 
     it 'should have APP namespace' do
       @entry.draft!
-      @entry.to_xml.elements['/entry/control/draft'].namespace.should == Atom::PP_NS
+      read_entry_xml('app:control/app:draft').namespace.should == Atom::PP_NS
     end
   end
 end
