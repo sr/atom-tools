@@ -2,7 +2,6 @@
 
 require "test/unit"
 
-require "atom/yaml"
 require "atom/xml"
 
 require "atom/feed"
@@ -44,43 +43,6 @@ class AtomTest < Test::Unit::TestCase
 
     assert_has_category(xml, "test")
     assert_has_category(xml, "tags")
-  end
-
-  def test_devour_yaml
-    time = Time.parse "2007-01-18T12:37:46Z"
-
-    yaml = <<END
-title: testing YAML
-draft: yes
-
-authors:
-- name: Mr. Safe
-  uri: http://example.com/
-
-links:
-- href: http://atomenabled.org/
-
-content: not much here
-
-updated: #{time.iso8601}
-END
-
-    entry = Atom::Entry.from_yaml(yaml)
-
-    assert_equal("testing YAML", entry.title.to_s)
-
-    assert entry.draft
-
-    assert_equal(1, entry.authors.length)
-    assert_equal("Mr. Safe", entry.authors.first.name)
-    assert_equal("http://example.com/", entry.authors.first.uri)
-
-    assert_equal(1, entry.links.length)
-    assert_equal("http://atomenabled.org/", entry.links.first["href"])
-
-    assert_equal("not much here", entry.content.to_s)
-
-    assert_equal(time, entry.updated)
   end
 
   def assert_has_category xml, term

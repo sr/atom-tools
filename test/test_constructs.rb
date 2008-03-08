@@ -151,9 +151,11 @@ END
 
   require "date"
   def test_date_construct
-    today = Date.today
-    time = Atom::Time.new today
+    entry = Atom::Entry.new
 
-    assert_match(/^#{today}T00:00:00/, time.to_s)
+    today = Date.today
+    entry.updated = today
+
+    assert_match(/^#{today}T00:00:00/, entry.updated.to_s)
   end
 end

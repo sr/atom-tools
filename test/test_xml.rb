@@ -13,7 +13,7 @@ class AtomTest < Test::Unit::TestCase
 
     xml = get_elements entry
 
-    assert_equal("Let's talk about <html>", xml.elements["/entry/title"].text)
+    assert_equal("Let's talk about <html>", xml.elements["title"].text)
 
     assert_match('&lt;', entry.to_s)
   end
@@ -26,8 +26,8 @@ class AtomTest < Test::Unit::TestCase
 
     xml = get_elements entry
 
-    assert_equal("Atom-drunk pirates<br>run amok!", xml.elements["/entry/title"].text)
-    assert_equal("html", xml.elements["/entry/title"].attributes["type"])
+    assert_equal("Atom-drunk pirates<br>run amok!", xml.elements["title"].text)
+    assert_equal("html", xml.elements["title"].attributes["type"])
 
     assert_match('&lt;', entry.to_s)
   end
@@ -42,8 +42,8 @@ class AtomTest < Test::Unit::TestCase
 
     base_check xml
 
-    assert_equal(XHTML::NS, xml.elements["/entry/title/div"].namespace)
-    assert_equal("run amok", xml.elements["/entry/title/div/em"].text)
+    assert_equal(XHTML::NS, xml.elements["title/div"].namespace)
+    assert_equal("run amok", xml.elements["title/div/em"].text)
 
     assert_match('<em>', entry.to_s)
   end
@@ -66,9 +66,9 @@ class AtomTest < Test::Unit::TestCase
 
     xml = get_elements entry
 
-    assert_equal("http://necronomicorp.com/blog/", xml.elements["/entry/author/uri"].text)
-    assert_equal("Brendan Taylor", xml.elements["/entry/author/name"].text)
-    assert_nil(xml.elements["/entry/author/email"])
+    assert_equal("http://necronomicorp.com/blog/", xml.elements["author/uri"].text)
+    assert_equal("Brendan Taylor", xml.elements["author/name"].text)
+    assert_nil(xml.elements["author/email"])
   end
 
   def test_tags
@@ -90,7 +90,7 @@ class AtomTest < Test::Unit::TestCase
 
     xml = get_elements entry
 
-    assert_match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/, xml.elements["//updated"].text, "atom:updated isn't in xsd:datetime format")
+    assert_match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/, xml.elements["updated"].text, "atom:updated isn't in xsd:datetime format")
 
     entry.updated!
 
@@ -99,15 +99,15 @@ class AtomTest < Test::Unit::TestCase
 
   def test_edited
     entry = get_entry
-    
+
     assert_nil entry.edited
 
     entry.edited = "1990-04-07"
     assert entry.edited.is_a?(Time)
 
     xml = get_elements entry
-    assert_equal(Atom::PP_NS, xml.elements["/entry/edited"].namespace)
-    assert_match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/, xml.elements["//edited"].text, 
+    assert_equal(Atom::PP_NS, xml.elements["app:edited"].namespace)
+    assert_match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/, xml.elements["app:edited"].text,
       "atom:edited isn't in xsd:datetime format")
 
     entry.edited!
@@ -123,9 +123,9 @@ class AtomTest < Test::Unit::TestCase
 
     xml = get_elements(entry)
 
-    assert_nil(xml.elements["/entry/content"].text)
-    assert_equal("http://example.org/test.png", xml.elements["/entry/content"].attributes["src"])
-    assert_equal("image/png", xml.elements["/entry/content"].attributes["type"])
+    assert_nil xml.elements["content"].text
+    assert_equal("http://example.org/test.png", xml.elements["content"].attributes["src"])
+    assert_equal("image/png", xml.elements["content"].attributes["type"])
   end
 
   def test_extensions
@@ -140,8 +140,8 @@ class AtomTest < Test::Unit::TestCase
 
     xml = get_elements entry
 
-    assert_equal(REXML::Element, xml.elements["/entry/test"].class)
-    assert_equal("http://purl.org/", xml.elements["/entry/test"].namespace)
+    assert_equal(REXML::Element, xml.elements["test"].class)
+    assert_equal("http://purl.org/", xml.elements["test"].namespace)
   end
 
   def test_roundtrip_extension
@@ -155,15 +155,15 @@ class AtomTest < Test::Unit::TestCase
 
     assert !entry.draft
 
-    assert_nil get_elements(entry).elements["/entry/control"]
+    assert_nil get_elements(entry).elements["control"]
 
     entry.draft = true
 
     xml = get_elements entry
 
-    assert_equal Atom::PP_NS, xml.elements["/entry/control"].namespace
-    assert_equal Atom::PP_NS, xml.elements["/entry/control/draft"].namespace
-    assert_equal "yes", xml.elements["/entry/control/draft"].text
+    assert_equal Atom::PP_NS, xml.elements["app:control"].namespace
+    assert_equal Atom::PP_NS, xml.elements["app:control/app:draft"].namespace
+    assert_equal "yes", xml.elements["app:control/app:draft"].text
 
     entry2 = Atom::Entry.parse xml
 
@@ -284,7 +284,7 @@ END
     assert_equal("tag:example.org,2003:3", feed.id)
 
     assert_equal([], feed.authors)
-    
+
     alt = feed.links.find { |l| l["rel"] == "alternate" }
     assert_equal("alternate", alt["rel"])
     assert_equal("text/html", alt["type"])
@@ -331,19 +331,6 @@ END
   end
 
   def test_parse_outofline_content
-    xml = <<END
-<entry xmlns="http://www.w3.org/2005/Atom">
-  <summary src="http://necronomicorp.com/nil">
-Summary doesn't have src.
-  </summary>
-</entry>
-END
-
-    entry = Atom::Entry.parse xml
-
-    assert_raises(RuntimeError) { entry.summary["src"] }
-    assert_equal "Summary doesn't have src.", entry.summary.to_s.strip
-
     xml = <<END
 <entry xmlns="http://www.w3.org/2005/Atom">
   <content src="http://necronomicorp.com/nil">
@@ -423,7 +410,7 @@ END
   end
 
   def assert_has_content_type xml, type
-    assert_equal(type, xml.elements["/entry/content"].attributes["type"])
+    assert_equal(type, xml.elements["content"].attributes["type"])
   end
 
   def get_entry
