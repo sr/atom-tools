@@ -18,23 +18,31 @@ module Atom
   #
   # This content of this element can be retrieved in different formats, see #html and #xml
   class Text < Atom::Element
-    attrb :type
+    atom_attrb :type
 
-    def initialize value # :nodoc:
-      @content = value
-      @content ||= "" # in case of nil
-      self["type"] = "text"
+    include AttrEl
 
-      super()
+    on_parse do |e,x|
+      type = e.type
+
+      if type == 'xhtml'
+        x = x.elements['div']
+        raise Atom::ParseError, 'xhtml content needs div wrapper' unless x
+      end
+
+      e.instance_variable_set("@content", x.children)
     end
 
-    # convenient, but not overly useful. see #html instead.
+    def local_init value = nil
+      @content = value ? value : ''
+    end
+
+    def type
+      @type ? @type : 'text'
+    end
+
     def to_s
-      if self["type"] == "xhtml"
-        @content.children.to_s
-      else
-        @content.to_s
-      end
+      @content.to_s
     end
 
     # returns a string suitable for dumping into an HTML document.
@@ -166,7 +174,9 @@ module Atom
   # * the "type" attribute can be an arbitrary media type
   # * there is a "src" attribute which is an IRI that points to the content of the entry (in which case the content element will be empty)
   class Content < Atom::Text
-    attrb :src
+    is_atom_element :content
+
+    atom_attrb :src
 
     def html
       if self["src"]
@@ -204,4 +214,8 @@ module Atom
       s
     end
   end
+
+  class Title < Atom::Text; is_atom_element :title; end
+  class Summary < Atom::Text; is_atom_element :summary; end
+  class Rights < Atom::Text; is_atom_element :rights; end
 end

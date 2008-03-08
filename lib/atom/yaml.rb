@@ -6,7 +6,7 @@ module Atom
     def taguri; nil end
   end
 
-  class Element < Hash
+  class Element
     def taguri # :nodoc:
     end
 
@@ -22,18 +22,6 @@ module Atom
         out.map( taguri, to_yaml_style ) do |map|
           self.to_yaml_properties.each do |m|
             map.add( m[1..-1], instance_variable_get( m ) )
-          end
-        end
-      end
-    end
-  end
-
-  class AttrEl < Atom::Element
-    def to_yaml( opts = {} )
-      YAML::quick_emit( object_id, opts ) do |out|
-        out.map( nil, to_yaml_style ) do |map|
-          self.class.attrs.each do |n,r|
-            map.add( n.to_s, self[n.to_s] ) if self[n.to_s]
           end
         end
       end

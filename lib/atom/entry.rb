@@ -4,8 +4,62 @@ require "atom/element"
 require "atom/text"
 
 module Atom
-  NS = "http://www.w3.org/2005/Atom"
-  PP_NS = "http://www.w3.org/2007/app"
+  class Control < Atom::Element
+    attr_accessor :draft
+
+    is_element PP_NS, :control
+
+    on_parse do |e,x|
+      d = e.get_elem x, PP_NS, 'draft'
+      d and e.set(:draft, d.text == 'yes')
+    end
+
+    on_build do |e,x|
+      unless (v = e.get(:draft)).nil?
+        el = e.mk_elem(x, ['app', PP_NS], 'draft')
+        el.text = (v ? 'yes' : 'no') 
+      end
+    end
+  end
+
+  module HasCategories
+    def HasCategories.included(klass)
+      klass.atom_elements :category, :categories, Atom::Category
+    end
+
+    # categorize the entry with each of an array or a space-separated
+    #   string
+    def tag_with(tags, delimiter = ' ')
+      return if not tags or tags.empty?
+
+      tag_list = unless tags.is_a?(String)
+                   tags
+                 else
+                   tags = tags.split(delimiter)
+                   tags.map! { |t| t.strip }
+                   tags.reject! { |t| t.empty? }
+                   tags.uniq
+                 end
+
+      tag_list.each do |tag|
+        unless categories.any? { |c| c.term == tag }
+          categories.new :term => tag
+        end
+      end
+    end
+  end
+
+  module HasLinks
+    def HasLinks.included(klass)
+      klass.atom_elements :link, :links, Atom::Link
+    end
+
+    def find_link(criteria)
+      self.links.find do |l|
+        criteria.all? { |k,v| l.send(k) == v }
+      end
+    end
+  end
 
   # An individual entry in a feed. As an Atom::Element, it can be
   # manipulated using accessors for each of its child elements. You
@@ -30,205 +84,52 @@ module Atom
   #   author = entry.authors.new :name => "Captain Kangaroo", :email => "kanga@example.net"
   #
   class Entry < Atom::Element
+    is_atom_element :entry
+
     # the master list of standard children and the types they map to
-    element :id, String, true
-    element :title, Atom::Text, true
-    element :content, Atom::Content, true
+    atom_string :id
 
-    element :rights, Atom::Text
-    # element :source, Atom::Feed  # complicated, eg. serialization
+    atom_element :title, Atom::Title
+    atom_element :summary, Atom::Summary
+    atom_element :content, Atom::Content
 
-    element :authors, Atom::Multiple(Atom::Author)
-    element :contributors, Atom::Multiple(Atom::Contributor)
+    atom_element :rights, Atom::Rights
 
-    element :categories, Atom::Multiple(Atom::Category)
-    element :links, Atom::Multiple(Atom::Link)
+    # element :source, Atom::Feed  # XXX complicated, eg. serialization
 
-    element :published, Atom::Time
-    element :updated, Atom::Time, true
+    atom_time :published
+    atom_time :updated
+    time ['app', PP_NS], :edited
 
-    element :summary, Atom::Text
+    atom_elements :author, :authors, Atom::Author
+    atom_elements :contributor, :contributors, Atom::Contributor
 
-    def initialize # :nodoc:
-      super
+    element ['app', PP_NS], :control, Atom::Control
 
-      # XXX I don't think I've ever actually used this
-      yield self if block_given?
-    end
+    include HasCategories
+    include HasLinks
 
-    # parses XML into an Atom::Entry
-    #
-    # +base+ is the absolute URI the document was fetched from
-    # (if there is one)
-    def self.parse xml, base = ""
-      if xml.respond_to? :to_atom_entry
-        xml.to_atom_entry(base)
-      elsif xml.respond_to? :read
-        self.parse(xml.read, base)
-      else
-        begin
-          REXML::Document.new(xml.to_s).to_atom_entry(base)
-        rescue REXML::ParseException => e
-          raise Atom::ParseError, e.message
-        end
-      end
-    end
+    atom_link :edit_url, :rel => 'edit'
 
     def inspect # :nodoc:
       "#<Atom::Entry id:'#{self.id}'>"
     end
 
-    # declare that this entry has updated.
-    #
-    # (note that this is different from Atom::Feed#update!)
-    def updated!
-      self.updated = Time.now
-    end
-
-    # declare that this entry has been edited 
-    def edited!
-      self.edited= Time.now
-    end
-
-    # categorize the entry with each of an array or a space-separated
-    #   string
-    def tag_with(tags, delimiter = ' ')
-      return if tags.nil? || tags.empty?
-      tag_list = tags.is_a?(String) ? tags.split(delimiter) : tags
-      tag_list.reject! { |t| t !~ /\S/ }
-      tag_list.map! { |t| t.strip }
-      tag_list.uniq!
-      tag_list.each do |tag|
-        unless categories.any? { |category| category['term'] == tag }
-          categories.new['term'] = tag
-        end
-      end
-    end
-
-    # the @href of an entry's link[@rel="edit"]
-    def edit_url
-      begin
-        edit_link = self.links.find do |link|
-          link["rel"] == "edit"
-        end
-
-        edit_link["href"]
-      rescue
-        nil
-      end
-    end
-
-    # NOTE: check that url is a valid URI?
-    def edit_url=(url)
-      link = Atom::Link.new({:href => url, :rel => 'edit'})
-      begin
-        edit_link = self.links.find { |link| link['rel'] == 'edit' }
-        edit_link['href'] = url
-      rescue
-        links << link
-      end
-    end
-
-    def edited=(time)
-      element = REXML::XPath.first(extensions, 'app:edited', {'app' => PP_NS})
-      unless element
-        element = REXML::Element.new('edited')
-        element.add_namespace Atom::PP_NS
-        extensions << element 
-      end
-      element.text = Atom::Time.new(time) 
-    end
-
-    def edited
-      element = REXML::XPath.first(extensions, 'app:edited', {'app' => PP_NS})
-      element ? Atom::Time.new(element.text) : nil
-    end
-
     def draft
-      elem = REXML::XPath.first(extensions, "app:control/app:draft", {"app" => PP_NS})
-
-      (elem && elem.text == "yes") ? true : false
+      control and control.draft
     end
 
-    def draft?; draft end
+    alias :draft? :draft
+
+    def draft!
+      self.draft = true
+    end
 
     def draft= is_draft
-      nses = {"app" => PP_NS}
-      draft_e = REXML::XPath.first(extensions, "app:control/app:draft", nses)
-      control_e = REXML::XPath.first(extensions, "app:control", nses)
-
-      if is_draft and not draft
-        unless draft_e
-          unless control_e
-            control_e = REXML::Element.new("control")
-            control_e.add_namespace PP_NS
-
-            extensions << control_e
-          end
-
-          draft_e = REXML::Element.new("draft")
-          control_e << draft_e
-        end
-
-        draft_e.text = "yes"
-      elsif not is_draft and draft
-        draft_e.remove
-        control_e.remove if control_e.elements.empty?
+      unless control
+        instance_variable_set '@control', Atom::Control.new
       end
-
-      is_draft
+      control.draft = is_draft
     end
-
-    def draft!; self.draft = true end
-
-# XXX this needs a test suite before it can be trusted.
-=begin
-    # tests the entry's validity
-    def valid?
-      self.class.required.each do |element|
-        unless instance_variable_get "@#{element}"
-          return [ false, "required element atom:#{element} missing" ]
-        end
-      end
-
-      if @authors.length == 0
-        return [ false, "required element atom:author missing" ]
-      end
-
-      alternates = @links.find_all do |link|
-        link["rel"] == "alternate"
-      end
-
-      unless @content or alternates
-          return [ false, "no atom:content or atom:link[rel='alternate']" ]
-      end
-
-      alternates.each do |link|
-        if alternates.find do |x|
-          not x == link and
-            x["type"] == link["type"] and
-            x["hreflang"] == link["hreflang"]
-          end
-
-          return [ false, 'more than one atom:link with a rel attribute value of "alternate" that has the same combination of type and hreflang attribute values.' ]
-        end
-      end
-
-      type = @content["type"]
-
-      base64ed = (not ["", "text", "html", "xhtml"].member? type) and
-        type.match(/^text\/.*/).nil? and  # not text
-        type.match(/.*[\+\/]xml$/).nil?   # not XML
-
-      if (@content["src"] or base64ed) and not summary
-        return [ false, "out-of-line or base64ed atom:content and no atom:summary" ]
-      end
-
-      true
-    end
-=end
   end
 end
-
-# this is here solely so that you don't have to require it
-require "atom/xml"

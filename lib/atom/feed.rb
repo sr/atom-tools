@@ -41,25 +41,25 @@ module Atom
     # conditional get information from the last fetch
     attr_reader :etag, :last_modified
 
-    element :id, String, true
-    element :title, Atom::Text, true
-    element :subtitle, Atom::Text
+    atom_string :id
+    atom_element :title, Atom::Text
+    atom_element :subtitle, Atom::Text
 
-    element :updated, Atom::Time, true
+    atom_time :updated
 
-    element :links, Atom::Multiple(Atom::Link)
-    element :categories, Atom::Multiple(Atom::Category)
+    include HasLinks
+    include HasCategories
 
-    element :authors, Atom::Multiple(Atom::Author)
-    element :contributors, Atom::Multiple(Atom::Contributor)
+    atom_elements :author, :authors, Atom::Author
+    atom_elements :contributor, :contributors, Atom::Contributor
 
-    element :generator, String # XXX with uri and version attributes!
-    element :icon, String
-    element :logo, String
+    atom_string :generator # XXX with uri and version attributes!
+    atom_string :icon
+    atom_string :logo
 
-    element :rights, Atom::Text
+    atom_element :rights, Atom::Text
 
-    element :entries, Atom::Multiple(Atom::Entry)
+    atom_elements :entry, :entries, Atom::Entry
 
     include Enumerable
 

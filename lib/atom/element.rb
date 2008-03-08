@@ -1,23 +1,28 @@
 require "time"
 require "rexml/element"
 
+# cribbed from metaid.rb
+class Object
+   # The hidden singleton lurks behind everyone
+   def metaclass; class << self; self; end; end
+   def meta_eval &blk; metaclass.instance_eval &blk; end
+
+   # Adds methods to a metaclass
+   def meta_def name, &blk
+     meta_eval { define_method name, &blk }
+   end
+end
+
 module Atom # :nodoc:
-  class Time < ::Time # :nodoc:
-    def self.new date
-      return if date.nil?
+  NS = "http://www.w3.org/2005/Atom"
+  PP_NS = "http://www.w3.org/2007/app"
 
-      date = if date.respond_to?(:iso8601)
-        date
-      else
-        Time.parse date.to_s
-      end
+  class ParseError < StandardError; end
 
-      def date.to_s
-        iso8601
-      end
-
-      date
-    end
+  module AttrEl
+    # for backwards compatibility
+    def [] k; self.send(k.to_sym); end
+    def []= k, v; self.send("#{k}=".to_sym, v); end
   end
 
   # ignore the man behind the curtain.
@@ -37,10 +42,6 @@ module Atom # :nodoc:
         super(item)
       end
 
-      def to_element
-        collect do |item| item.to_element end
-      end
-
       def self.holds; @class end
       def self.single?; true end
       def taguri; end
@@ -49,188 +50,344 @@ module Atom # :nodoc:
 
   # The Class' methods provide a DSL for describing Atom's structure
   #   (and more generally for describing simple namespaced XML)
-  class Element < Hash
-    # a REXML::Element that shares this element's extension attributes
-    # and child elements
-    attr_reader :extensions
-
+  class Element
     # this element's xml:base
     attr_accessor :base
 
-    # eg. 'entry' or 'content' or 'summary'
-    #    this is needed to properly serialize things like summary that don't have
-    #    their own class
-    attr_accessor :local_name # :nodoc:
-
-    # this element's attributes
-    def self.attrs # :nodoc:
-      @attrs || []
+    def self.is_element ns, name
+      meta_def :self_namespace do; ns; end
+      meta_def :self_name do; name.to_s; end
     end
 
-    # this element's child elements
-    def self.elements # :nodoc:
-      @elements || []
+    def self.is_atom_element name
+      self.is_element Atom::NS, name
     end
 
-    # required child elements
-    def self.required # :nodoc:
-      @elements.find { |name,kind,req| req }
+    def self.new_for_parse root
+      self.new()
     end
 
-    # copy defined elements and attributes so inheritance works
-    def self.inherited klass # :nodoc:
-      elements.each do |name, kind, req|
-        klass.element name, kind, req
-      end
-      attrs.each do |name, req|
-        klass.attrb name, req
-      end
+    def get_elem xml, ns, name
+      REXML::XPath.first xml, "./ns:#{name}", { 'ns' => ns }
     end
 
-    # define a child element
-    def self.element(name, kind, req = false) # :nodoc:
-      attr_reader name
-
-      @elements ||= []
-      @elements << [name, kind, req]
-
-      unless kind.respond_to? :single?
-        self.define_accessor(name,kind)
-      end
+    def get_elems xml, ns, name
+      REXML::XPath.match xml, "./ns:#{name}", { 'ns' => ns }
     end
 
-    # define an attribute
-    def self.attrb(name, req = false) # :nodoc:
-      @attrs ||= []
-
-      @attrs << [name, req]
+    def get_atom_elem xml, name
+      get_elem xml, Atom::NS, name
     end
 
-    # a little bit of magic
-    def self.define_accessor(name,kind) # :nodoc:
-      define_method "#{name}=".to_sym do |value|
-        return unless value
+    def get_atom_elems xml, name
+      get_elems Atom::NS, name
+    end
 
-        i = kind.new(value)
-        i.local_name = name.to_s if i.respond_to? 'local_name='
+    def get_atom_attrb xml, name
+      xml.attributes[name.to_s]
+    end
 
-        set(name, i)
+    def set_atom_attrb xml, name, value
+      # XXX namespaces
+      xml.attributes[name.to_s] = value
+    end
+
+    def self.on_parse &block
+      @on_parse ||= []
+      @on_parse << block
+    end
+
+    def self.on_build &block
+      @on_build ||= []
+      @on_build << block
+    end
+
+    def self.parsers &block
+      @on_parse ||= []
+      @on_parse.each &block
+
+      # XXX this is a bit of a hack i think
+      if ancestors[1].respond_to? :parsers
+        ancestors[1].parsers &block
       end
     end
 
-    # get the value of an attribute
-    def [] key
-      test_key key
+    def self.builders &block
+      @on_build ||= []
+      @on_build.each &block
 
-      super
-    end
-
-    # set the value of an attribute
-    def []= key, value
-      test_key key
-
-      super
-    end
-
-    # internal junk you probably don't care about
-    def initialize # :nodoc:
-      @extensions = REXML::Element.new("extensions")
-      @local_name = self.class.name.split("::").last.downcase
-
-      self.class.elements.each do |name,kind,req|
-        if kind.respond_to? :single?
-          a = kind.new
-          set(name, kind.new)
-        end
+      # XXX this is a bit of a hack i think
+      if ancestors[1].respond_to? :builders
+        ancestors[1].builders &block
       end
     end
 
-    # convert to a REXML::Element (with no namespace)
-    def to_element
-      elem = REXML::Element.new(local_name)
+    def self.parse xml, base = ''
+      root = if xml.respond_to? :elements
+               xml
+             else
+               xml = xml.read if xml.respond_to? :read
 
-      self.class.elements.each do |name,kind,req|
-        v = get(name)
-        next if v.nil?
+               begin
+                 REXML::Document.new(xml.to_s).root
+               rescue REXML::ParseException => e
+                 raise Atom::ParseError, e.message
+               end
+             end
 
-        if v.respond_to? :to_element
-          e = v.to_element
-          e = [ e ] unless e.is_a? Array
-
-          e.each do |bit|
-            elem << bit
-          end
-        else
-          e = REXML::Element.new(name.to_s, elem).text = get(name)
-        end
+      unless root.namespace == self.self_namespace
+        raise Atom::ParseError, "expected element in namespace #{self.self_namespace}, not #{root.namespace}"
       end
 
-      self.class.attrs.each do |name,req|
-        value = self[name.to_s]
-        elem.attributes[name.to_s] = value.to_s if value
+      unless root.local_name == self.self_name
+        raise Atom::ParseError, "expected element named #{self.self_name}, not #{root.local_name}"
       end
 
-      self.extensions.children.each do |element|
-        elem << element.dup # otherwise they get removed from @extensions
+      if root.attributes['xml:base']
+        base = root.attributes['xml:base']
       end
 
-      if self.base and not self.base.empty?
-        elem.attributes["xml:base"] = self.base
+      e = self.new_for_parse root
+      e.base = base
+
+      self.parsers do |parser|
+        parser.call e, root
       end
 
-      elem
+      e
     end
 
-    # convert to a REXML::Document (properly namespaced)
     def to_xml
-      doc = REXML::Document.new
-      root = to_element
-      root.add_namespace Atom::NS
-      doc << root
-      doc
+      root = REXML::Element.new self.class.self_name
+      root.add_namespace self.class.self_namespace
+
+      build root
+
+      root
     end
 
-    # convert to an XML string
+    def build root
+      self.class.builders do |builder|
+        builder.call self, root
+      end
+    end
+
     def to_s
       to_xml.to_s
+    end
+
+    def self.def_get(name, &block)
+      define_method name.to_sym, &block
+    end
+
+    def self.def_set(name, &block)
+      define_method "#{name}=".to_sym, &block
+    end
+
+    def self.parse_plain uri, name
+      self.on_parse do |e,x|
+        el = e.get_elem(x, uri, name)
+        el and e.set(name, el.text)
+      end
+    end
+
+    def self.build_plain ns, name
+      self.on_build do |e,x|
+        if v = e.get(name)
+          el = e.mk_elem(x, ns, name)
+          el.text = v.to_s
+        end
+      end
+    end
+
+    def self.atom_string(name)
+      attr_accessor name
+
+      self.parse_plain(Atom::NS, name)
+      self.build_plain(Atom::NS, name)
+    end
+
+    def self.time(ns, name)
+      attr_reader name
+
+      self.def_set name do |time|
+        unless time.respond_to? :iso8601
+          time = Time.parse(time)
+        end
+
+        def time.to_s; iso8601; end
+
+        instance_variable_set("@#{name}", time)
+      end
+
+      define_method "#{name}!".to_sym do
+        set(name, Time.now)
+      end
+
+      self.parse_plain(ns[1], name)
+      self.build_plain(ns, name)
+    end
+
+    def self.atom_time(name)
+      self.time ['atom', Atom::NS], name
+    end
+
+    def self.element(ns, name, klass)
+      attr_reader name
+
+      self.on_parse do |e,x|
+        el = e.get_elem(x, ns[1], name)
+        el and e.instance_variable_set("@#{name}", klass.parse(el, e.base))
+      end
+
+      self.on_build do |e,x|
+        if v = e.get(name)
+          el = e.mk_elem(x, ns, name)
+          v.build(el)
+        end
+      end
+
+      def_set name do |value|
+        instance_variable_set("@#{name}", klass.new(value))
+      end
+    end
+
+    def self.atom_element(name, klass)
+      self.element(['atom', Atom::NS], name, klass)
+    end
+
+    def self.on_init &block
+      @on_init ||= []
+      @on_init << block
+    end
+
+    def local_init(args = {})
+      if args.is_a? Hash
+        args.each do |k,v|
+          set(k, v)
+        end
+      else
+        raise ArgumentError, "expected Hash or nothing for default initializer, got #{args.inspect}"
+      end
+    end
+
+    def self.initters &block
+      @on_init ||= []
+      @on_init.each &block
+    end
+
+    def initialize *args
+      self.class.initters do |init|
+        self.instance_eval &init
+      end
+
+      local_init(*args)
+    end
+
+    def self.elements(ns, one_name, many_name, klass)
+      attr_reader many_name
+
+      self.on_init do
+        var = Atom::Multiple(klass).new
+        instance_variable_set("@#{many_name}", var)
+      end
+
+      self.on_parse do |e,x|
+        var = e.get(many_name)
+
+        e.get_elems(x, ns[1], one_name).each do |el|
+          var << klass.parse(el, e.base)
+        end
+      end
+
+      self.on_build do |e,x|
+        if vs = e.get(many_name)
+          vs.each do |v|
+            el = e.mk_elem(x, ns, one_name)
+            v.build(el)
+          end
+        end
+      end
+    end
+
+   def mk_elem(root, ns, name)
+      if ns.is_a? Array
+        prefix, uri = ns
+      else
+        prefix, uri = nil, ns
+      end
+
+      name = name.to_s
+
+      existing_prefix = root.namespaces.find do |k,v|
+        v == uri
+      end
+
+      root << if existing_prefix
+                prefix = existing_prefix[0]
+
+                if prefix != 'xmlns'
+                  name = prefix + ':' + name
+                end
+
+                REXML::Element.new(name)
+              elsif prefix
+                e = REXML::Element.new(prefix + ':' + name)
+                e.add_namespace(prefix, uri)
+                e
+              else
+                e = REXML::Element.new(name)
+                e.add_namespace(uri)
+                e
+              end
+    end
+
+    def self.atom_elements(one_name, many_name, klass)
+      self.elements(['atom', Atom::NS], one_name, many_name, klass)
+    end
+
+    def self.atom_attrb(name)
+      attr_accessor name
+
+      self.on_parse do |e,x|
+        e.set name, e.get_atom_attrb(x, name)
+      end
+
+      self.on_build do |e,x|
+        if v = e.get(name)
+          e.set_atom_attrb(x, name, v)
+        end
+      end
+    end
+
+    def self.atom_link name, criteria
+      def_get name do
+        existing = find_link(criteria)
+
+        existing and existing.href
+      end
+
+      def_set name do |value|
+        existing = find_link(criteria)
+
+        if existing
+          existing.href = value
+        else
+          links.new criteria.merge(:href => value)
+        end
+      end
     end
 
     def base= uri # :nodoc:
       @base = uri.to_s
     end
 
-    private
-
-    # like +valid_key?+ but raises on failure
-    def test_key key
-      unless valid_key? key
-        raise RuntimeError, "this element (#{local_name}) doesn't have that attribute '#{key}'"
-      end
-    end
-
-    # tests that an attribute 'key' has been defined
-    def valid_key? key
-      self.class.attrs.find { |name,req| name.to_s == key }
-    end
-
     def get name
-      instance_variable_get "@#{name}"
+      send "#{name}".to_sym
     end
 
     def set name, value
-      instance_variable_set "@#{name}", value
-    end
-  end
-
-  class AttrEl < Atom::Element # :nodoc:
-    def initialize h = {}
-      super()
-
-      self.class.attrs.each do |a,req|
-        if h.has_key? a.to_sym
-          self[a.to_s] = h[a.to_sym]
-        end
-      end
+      send "#{name}=", value
     end
   end
 
@@ -242,20 +399,17 @@ module Atom # :nodoc:
   # hreflang:: the language of the linked item (RFC3066)
   # title:: human-readable information about the link
   # length:: a hint about the length (in octets) of the linked item
-  class Link < Atom::AttrEl
-    attrb :href, true
-    attrb :rel
-    attrb :type
-    attrb :hreflang
-    attrb :title
-    attrb :length
+  class Link < Atom::Element
+    is_atom_element :link
 
-    def initialize *args # :nodoc:
-      super
+    atom_attrb :href
+    atom_attrb :rel
+    atom_attrb :type
+    atom_attrb :hreflang
+    atom_attrb :title
+    atom_attrb :length
 
-      # just setting a default
-      self["rel"] = "alternate" unless self["rel"]
-    end
+    include AttrEl
   end
 
   # A category has the following attributes:
@@ -263,10 +417,14 @@ module Atom # :nodoc:
   # term (required):: a string that identifies the category
   # scheme:: an IRI that identifies a categorization scheme
   # label:: a human-readable label
-  class Category < Atom::AttrEl
-    attrb :term, true
-    attrb :scheme
-    attrb :label
+  class Category < Atom::Element
+    is_atom_element :category
+
+    atom_attrb :term
+    atom_attrb :scheme
+    atom_attrb :label
+
+    include AttrEl
   end
 
   # A person construct has the following child elements:
@@ -274,38 +432,17 @@ module Atom # :nodoc:
   # name (required):: a human-readable name
   # uri:: an IRI associated with the person
   # email:: an email address associated with the person
-  class Author < Atom::Element
-    element :name, String, true
-    element :uri, String
-    element :email, String
-
-    def initialize h = {}
-      super()
-
-      self.class.elements.each do |e,x,y|
-        if h.has_key? e.to_sym
-          self.send("#{e}=".to_sym, h[e.to_sym])
-        end
-      end
-    end
+  class Person < Atom::Element
+    atom_string :name
+    atom_string :uri
+    atom_string :email
   end
 
-  # same as Atom::Author
-  class Contributor < Atom::Element
-    # Author and Contributor should probably inherit from Person, but
-    # oh well.
-    element :name, String, true
-    element :uri, String
-    element :email, String
+  class Author < Atom::Person
+    is_atom_element :author
+  end
 
-    def initialize h = {}
-      super()
-
-      self.class.elements.each do |e,x,y|
-        if h.has_key? e.to_sym
-          self.send("#{e}=".to_sym, h[e.to_sym])
-        end
-      end
-    end
+  class Contributor < Atom::Person
+    is_atom_element :contributor
   end
 end

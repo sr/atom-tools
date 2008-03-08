@@ -9,8 +9,8 @@ module Atom
 
   # an Atom::Workspace has a #title (Atom::Text) and #collections, an Array of Atom::Collection s
   class Workspace < Atom::Element
-    element :collections, Atom::Multiple(Atom::Feed)
-    element :title, Atom::Text
+    atom_elements :collection, :collections, Atom::Feed
+    atom_element :title, Atom::Text
 
     def self.parse(xml, base = "", http = Atom::HTTP.new) # :nodoc:
       ws = Atom::Workspace.new
@@ -93,7 +93,7 @@ module Atom
   # document. Its only child is #workspaces, which is an Array of
   # Atom::Workspace s
   class Service < Atom::Element
-    element :workspaces, Atom::Multiple(Atom::Workspace)
+    atom_elements :workspace, :workspaces, Atom::Workspace
 
     # retrieves and parses an Atom service document.
     def initialize(service_url = "", http = Atom::HTTP.new)
