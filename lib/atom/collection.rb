@@ -1,20 +1,34 @@
 require "atom/http"
 require "atom/feed"
 
-# so we can do some mimetype guessing
-require "webrick/httputils"
-
 module Atom
   # a Collection is an Atom::Feed with extra Protocol-specific methods
-  class Collection < Feed
-    # comma separated string that contains a list of media types
-    # accepted by a collection.
-    #
-    # XXX I should parse this in some way, but I'm not sure what's useful 
-    attr_accessor :accepts
+  class Collection < Atom::Element
+    is_element PP_NS, 'collection'
 
-    def initialize(uri, http = Atom::HTTP.new)
-      super uri, http
+    strings ['app', PP_NS], :accept, :accepts
+
+    atom_element :title, Atom::Title
+    atom_attrb :href
+
+    def accepts
+      if @accepts.empty?
+        ['application/atom+xml;type=entry']
+      else
+        @accepts
+      end
+    end
+
+    def accepts= array
+      @accepts = array
+    end
+
+    attr_reader :uri
+    attr_reader :http
+
+    def local_init(uri = '', http = Atom::HTTP.new)
+      @href = uri
+      @http = http
     end
 
     # POST an entry to the collection, with an optional slug

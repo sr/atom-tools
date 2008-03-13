@@ -65,6 +65,9 @@ module Atom # :nodoc:
     # this element's xml:base
     attr_accessor :base
 
+    # xml elements and attributes that have been parsed, but are unknown
+    attr_reader :extensions
+
     # attaches a name and a namespace to an element
     # MUST be called on any new element
     def self.is_element ns, name
@@ -105,9 +108,71 @@ module Atom # :nodoc:
       xml.attributes[name.to_s] = value
     end
 
-    def self.on_parse &block
+    def self.on_parse name_pair, &block
+      uri, name = name_pair
       @on_parse ||= []
-      @on_parse << block
+
+      process = lambda do |e,x|
+        el = e.get_elem(x, uri, name)
+
+        if el
+          block.call e, el
+
+          e.extensions.delete_if { |c| c.namespace == uri and c.name == name.to_s }
+        end
+      end
+
+      @on_parse << process
+    end
+
+    def self.on_parse_attr name_pair, &block
+      uri, name = name_pair
+      @on_parse ||= []
+
+      process = lambda do |e,x|
+        x = e.get_atom_attrb(x, name)
+
+        if x
+          block.call e, x
+
+          e.extensions.attributes.delete name.to_s
+        end
+      end
+
+      @on_parse << process
+    end
+
+    def self.on_parse_many name_pair, &block
+      uri, name = name_pair
+      @on_parse ||= []
+
+      process = lambda do |e,x|
+        els = e.get_elems(x, uri, name)
+
+        unless els.empty?
+          block.call e, els
+
+          els.each do |el|
+            e.extensions.delete_if { |c| c.namespace == uri and c.name == name.to_s }
+          end
+        end
+      end
+
+      @on_parse << process
+    end
+
+    def self.on_parse_root &block
+      @on_parse ||= []
+
+      process = lambda do |e,x|
+        block.call e, x
+
+        x.elements.each do |el|
+          e.extensions.clear
+        end
+      end
+
+      @on_parse << process
     end
 
     def self.on_build &block
@@ -135,18 +200,21 @@ module Atom # :nodoc:
       @on_build.each &block
     end
 
-    def self.parse xml, base = ''
-      root = if xml.respond_to? :elements
-               xml
-             else
-               xml = xml.read if xml.respond_to? :read
+    # turns a String, an IO-like, a REXML::Element, etc. into a
+    #
+    # the base URL parameter should be supplied if you know where it came from
+    def self.parse xml, base = '', element = nil
+      if xml.respond_to? :elements
+         root = xml.dup
+       else
+         xml = xml.read if xml.respond_to? :read
 
-               begin
-                 REXML::Document.new(xml.to_s).root
-               rescue REXML::ParseException => e
-                 raise Atom::ParseError, e.message
-               end
-             end
+         begin
+           root = REXML::Document.new(xml.to_s).root
+         rescue REXML::ParseException => e
+           raise Atom::ParseError, e.message
+         end
+       end
 
       unless root.namespace == self.self_namespace
         raise Atom::ParseError, "expected element in namespace #{self.self_namespace}, not #{root.namespace}"
@@ -160,11 +228,21 @@ module Atom # :nodoc:
         base = (base.to_uri + root.attributes['xml:base'])
       end
 
-      e = self.new_for_parse root
+      e = element ? element : self.new_for_parse(root)
       e.base = base
 
-      self.parsers do |parser|
-        parser.call e, root
+      # XXX attributes
+      root.elements.each do |c|
+        # leftover elements are stuffed into @extensions
+        e.extensions << c
+      end
+
+      root.attributes.each do |k,v|
+        e.extensions.attributes[k] = v
+      end
+
+      self.parsers do |p|
+        p.call(e, root)
       end
 
       e
@@ -179,6 +257,7 @@ module Atom # :nodoc:
       root
     end
 
+    # fill a REXML::Element with the data from this Atom::Element
     def build root
       if self.base and not self.base.empty?
         root.attributes['xml:base'] = self.base
@@ -186,6 +265,14 @@ module Atom # :nodoc:
 
       self.class.builders do |builder|
         builder.call self, root
+      end
+
+      @extensions.each do |e|
+        root << e.dup
+      end
+
+      @extensions.attributes.each do |k,v|
+        root.attributes[k] = v
       end
     end
 
@@ -202,9 +289,8 @@ module Atom # :nodoc:
     end
 
     def self.parse_plain uri, name
-      self.on_parse do |e,x|
-        el = e.get_elem(x, uri, name)
-        el and e.set(name, el.text)
+      self.on_parse [uri, name] do |e,x|
+        e.set(name, x.text)
       end
     end
 
@@ -221,7 +307,7 @@ module Atom # :nodoc:
       attr_accessor name
 
       self.parse_plain(Atom::NS, name)
-      self.build_plain(Atom::NS, name)
+      self.build_plain(['atom', Atom::NS], name)
     end
 
     def self.time(ns, name)
@@ -252,9 +338,8 @@ module Atom # :nodoc:
     def self.element(ns, name, klass)
       attr_reader name
 
-      self.on_parse do |e,x|
-        el = e.get_elem(x, ns[1], name)
-        el and e.instance_variable_set("@#{name}", klass.parse(el, e.base))
+      self.on_parse [ns[1], name] do |e,x|
+        e.instance_variable_set("@#{name}", klass.parse(x, e.base))
       end
 
       self.on_build do |e,x|
@@ -294,11 +379,40 @@ module Atom # :nodoc:
     end
 
     def initialize *args
+      @extensions = []
+
+      @extensions.instance_variable_set('@attrs', {})
+      def @extensions.attributes
+        @attrs
+      end
+
       self.class.initters do |init|
         self.instance_eval &init
       end
 
       local_init(*args)
+    end
+
+    def self.strings(ns, one_name, many_name)
+      attr_reader many_name
+
+      self.on_init do
+        instance_variable_set("@#{many_name}", [])
+      end
+
+      self.on_parse_many [ns[1], one_name] do |e,xs|
+        var = e.instance_variable_get("@#{many_name}")
+
+        xs.each do |el|
+          var << el.text
+        end
+      end
+
+      self.on_build do |e,x|
+        e.instance_variable_get("@#{many_name}").each do |v|
+          e.mk_elem(x, ns, one_name).text = v
+        end
+      end
     end
 
     def self.elements(ns, one_name, many_name, klass)
@@ -309,20 +423,18 @@ module Atom # :nodoc:
         instance_variable_set("@#{many_name}", var)
       end
 
-      self.on_parse do |e,x|
+      self.on_parse_many [ns[1], one_name] do |e,xs|
         var = e.get(many_name)
 
-        e.get_elems(x, ns[1], one_name).each do |el|
+        xs.each do |el|
           var << klass.parse(el, e.base)
         end
       end
 
       self.on_build do |e,x|
-        if vs = e.get(many_name)
-          vs.each do |v|
-            el = e.mk_elem(x, ns, one_name)
-            v.build(el)
-          end
+        e.get(many_name).each do |v|
+          el = e.mk_elem(x, ns, one_name)
+          v.build(el)
         end
       end
     end
@@ -366,10 +478,8 @@ module Atom # :nodoc:
     def self.atom_attrb(name)
       attr_accessor name
 
-      self.on_parse do |e,x|
-        if v = e.get_atom_attrb(x, name)
-          e.set name, v
-        end
+      self.on_parse_attr [Atom::NS, name] do |e,x|
+        e.set name, x
       end
 
       self.on_build do |e,x|
@@ -430,11 +540,15 @@ module Atom # :nodoc:
 
     include AttrEl
 
-    on_parse do |e,x|
+    def self.parse xml, base = ''
+      e = super
+
       # URL absolutization
       if e.base and e.href
         e.href = (e.base.to_uri + e.href).to_s
       end
+
+      e
     end
   end
 

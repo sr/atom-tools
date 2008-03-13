@@ -11,7 +11,11 @@ class AtomTest < Test::Unit::TestCase
 
     assert_match('&lt;', entry.title.xml.to_s)
 
-    xml = get_elements entry
+    xml = entry.to_xml
+
+    b = Atom::Entry.parse(xml).to_s
+
+    base_check xml
 
     assert_equal("Let's talk about <html>", xml.elements["title"].text)
 
@@ -39,8 +43,6 @@ class AtomTest < Test::Unit::TestCase
     entry.title["type"] = "xhtml"
 
     xml = get_elements entry
-
-    base_check xml
 
     assert_equal(XHTML::NS, xml.elements["title/div"].namespace)
     assert_equal("run amok", xml.elements["title/div/em"].text)
@@ -88,7 +90,11 @@ class AtomTest < Test::Unit::TestCase
 
     assert entry.updated.is_a?(Time)
 
-    xml = get_elements entry
+    xml = entry.to_xml
+
+    b = Atom::Entry.parse(xml).to_s
+
+    base_check xml
 
     assert_match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/, xml.elements["updated"].text, "atom:updated isn't in xsd:datetime format")
 
@@ -131,12 +137,14 @@ class AtomTest < Test::Unit::TestCase
   def test_extensions
     entry = get_entry
 
-    assert(entry.extensions.children.empty?)
+    assert(entry.extensions.empty?)
 
     element = REXML::Element.new("test")
     element.add_namespace "http://purl.org/"
 
     entry.extensions << element
+
+    assert entry.extensions.member?(element)
 
     xml = get_elements entry
 
@@ -421,7 +429,9 @@ END
   def get_elements entry
     xml = entry.to_xml
 
-    assert_equal(entry.to_s, Atom::Entry.parse(xml).to_s)
+    b = Atom::Entry.parse(xml)
+
+    assert_equal(xml.to_s, b.to_s)
 
     base_check xml
 

@@ -42,29 +42,23 @@ class AtomProtocolTest < Test::Unit::TestCase
 </service>
 END
 
-    service = Atom::Service.new
-    service.parse doc
+    service = Atom::Service.parse doc
 
     ws = service.workspaces.first
     assert_equal "My Blog", ws.title.to_s
 
     coll = ws.collections.first
-    assert_equal URI.parse("http://example.org/myblog/entries"), coll.uri
+    assert_equal "http://example.org/myblog/entries", coll.href
     assert_equal "Entries", coll.title.to_s
     assert_equal ["application/atom+xml;type=entry"], coll.accepts
 
     coll = ws.collections.last
-    assert_equal URI.parse("http://example.org/myblog/fotes"), coll.uri
+    assert_equal "http://example.org/myblog/fotes", coll.href
     assert_equal "Photos", coll.title.to_s
     assert_equal ["image/*"], coll.accepts
 
     http = service.instance_variable_get(:@http)
     assert_instance_of Atom::HTTP, http
-
-    # collections should inherit the service's HTTP object
-    assert_equal http, coll.instance_variable_get(:@http)
-
-    # XXX write a test for relative hrefs
   end
 
   def test_write_introspection
@@ -126,12 +120,6 @@ END
     collection = Atom::Collection.new("http://necronomicorp.com/testatom?atom")
 
     assert_instance_of Atom::HTTP, collection.instance_variable_get("@http")
-  end
-
-  def test_collection_properly_inherits_feed
-    collection = Atom::Collection.new("http://necronomicorp.com/testatom?atom")
-
-    assert_equal [], collection.links
   end
 
   def test_autodiscover_service_link

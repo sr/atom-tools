@@ -11,8 +11,8 @@ module Atom
   class Workspace < Atom::Element
     is_element PP_NS, :workspace
 
-    atom_elements :collection, :collections, Atom::Feed
-    atom_element :title, Atom::Text
+    elements ['app', PP_NS], :collection, :collections, Atom::Collection
+    atom_element :title, Atom::Title
   end
 
   # Atom::Service represents an Atom Publishing Protocol service
@@ -21,7 +21,7 @@ module Atom
   class Service < Atom::Element
     is_element PP_NS, :service
 
-    atom_elements :workspace, :workspaces, Atom::Workspace
+    elements ['app', PP_NS], :workspace, :workspaces, Atom::Workspace
 
     # retrieves and parses an Atom service document.
     def initialize(service_url = "", http = Atom::HTTP.new)
@@ -42,7 +42,7 @@ module Atom
         raise Atom::HTTPException, "Unexpected HTTP response code: #{res.code}"
       end
 
-      parse(res.body, base)
+      self.class.parse(res.body, base, self)
     end
 
     def collections

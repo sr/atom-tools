@@ -22,7 +22,7 @@ module Atom
 
     include AttrEl
 
-    on_parse do |e,x|
+    on_parse_root do |e,x|
       type = e.type
 
       if x.is_a? REXML::Element

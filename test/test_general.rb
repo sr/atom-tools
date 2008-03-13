@@ -2,8 +2,6 @@
 
 require "test/unit"
 
-require "atom/xml"
-
 require "atom/feed"
 
 class AtomTest < Test::Unit::TestCase

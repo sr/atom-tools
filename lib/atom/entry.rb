@@ -9,9 +9,8 @@ module Atom
 
     is_element PP_NS, :control
 
-    on_parse do |e,x|
-      d = e.get_elem x, PP_NS, 'draft'
-      d and e.set(:draft, d.text == 'yes')
+    on_parse [PP_NS, 'draft'] do |e,x|
+      e.set(:draft, x.text == 'yes')
     end
 
     on_build do |e,x|

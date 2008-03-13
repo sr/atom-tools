@@ -231,6 +231,3 @@ module Atom
     end
   end
 end
-
-# this is here solely so you don't have to require it
-require "atom/xml"
