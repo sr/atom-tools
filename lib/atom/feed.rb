@@ -127,17 +127,18 @@ module Atom
     # like #merge, but in place
     def merge! other_feed
       [:id, :title, :subtitle, :updated, :rights, :logo, :icon].each do |p|
-        v = other_feed.send("#{p}")
-        if v
+        if (v = other_feed.get(p))
           set p, v
         end
       end
 
       [:links, :categories, :authors, :contributors].each do |p|
-        other_feed.send("#{p}").each do |e|
-          self.send("#{p}") << e
+        other_feed.get(p).each do |e|
+          get(p) << e
         end
       end
+
+      @extensions = other_feed.extensions
 
       merge_entries! other_feed
     end

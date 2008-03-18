@@ -9,23 +9,23 @@ FEED.update!
 class TestOrderConformance < Test::Unit::TestCase
   def test_0
     entry = FEED.entries[0]
-    
+
     assert_equal "tag:example.org,2006:atom/conformance/element_order/1", entry.id
     assert_equal "Simple order, nothing fancy", entry.title.to_s
     assert_equal "Simple ordering, nothing fancy", entry.summary.to_s
     assert_equal Time.parse("2006-01-26T09:20:01Z"), entry.updated
-    
+
     assert_alternate_href(entry, "http://www.snellspace.com/public/alternate")
   end
 
   def test_1
     entry = FEED.entries[1]
-    
+
     assert_equal "tag:example.org,2006:atom/conformance/element_order/2", entry.id
     assert_equal "Same as the first, only mixed up a bit", entry.title.to_s
     assert_equal "Same as the first, only mixed up a bit", entry.summary.to_s
     assert_equal Time.parse("2006-01-26T09:20:02Z"), entry.updated
-    
+
     assert_alternate_href(entry, "http://www.snellspace.com/public/alternate")
   end
 
@@ -34,8 +34,9 @@ class TestOrderConformance < Test::Unit::TestCase
     entry = FEED.entries[2]
 
     # both links should be available, but it's up to you to choose which one to use 
+
     assert_link_href(entry, "http://www.snellspace.com/public/alternate") { |l| l["rel"] == "alternate" and l["type"] == nil }
-    
+
     assert_link_href(entry, "http://www.snellspace.com/public/alternate2") { |l| l["rel"] == "alternate" and l["type"] == "text/plain" }
   end
 
@@ -65,7 +66,7 @@ class TestOrderConformance < Test::Unit::TestCase
   #  ^-- quoted summary is a typo, source is last
   def test_5
     entry = FEED.entries[5]
-    
+
     assert_equal "tag:example.org,2006:atom/conformance/element_order/6", entry.id
     assert_equal "Entry with a source last", entry.title.to_s
     assert_equal Time.parse("2006-01-26T09:20:06Z"), entry.updated
@@ -91,18 +92,18 @@ class TestOrderConformance < Test::Unit::TestCase
     assert_equal "tag:example.org,2006:atom/conformance/element_order/8", entry.id
     assert_equal "Atom elements in an extension element", entry.title.to_s
     assert_equal Time.parse("2006-01-26T09:20:08Z"), entry.updated
-    
+
     assert_alternate_href(entry, "http://www.snellspace.com/public/alternate")
   end
-  
+
   # Atom elements in an extension element
   def test_8
     entry = FEED.entries[8]
-    
+
     assert_equal "tag:example.org,2006:atom/conformance/element_order/9", entry.id
     assert_equal "Atom elements in an extension element", entry.title.to_s
     assert_equal Time.parse("2006-01-26T09:20:09Z"), entry.updated
-    
+
     assert_alternate_href(entry, "http://www.snellspace.com/public/alternate")
   end
 

@@ -104,7 +104,6 @@ module Atom # :nodoc:
     end
 
     def set_atom_attrb xml, name, value
-      # XXX namespaces
       xml.attributes[name.to_s] = value
     end
 
@@ -475,11 +474,11 @@ module Atom # :nodoc:
       self.elements(['atom', Atom::NS], one_name, many_name, klass)
     end
 
-    def self.atom_attrb(name)
+    def self.attrb(ns, name)
       attr_accessor name
 
-      self.on_parse_attr [Atom::NS, name] do |e,x|
-        e.set name, x
+      self.on_parse_attr [ns[1], name] do |e,x|
+        e.set(name, x)
       end
 
       self.on_build do |e,x|
@@ -487,6 +486,10 @@ module Atom # :nodoc:
           e.set_atom_attrb(x, name, v)
         end
       end
+    end
+
+    def self.atom_attrb(name)
+      self.attrb(['atom', Atom::NS], name)
     end
 
     def self.atom_link name, criteria
@@ -539,6 +542,10 @@ module Atom # :nodoc:
     atom_attrb :length
 
     include AttrEl
+
+    def rel
+      @rel or 'alternate'
+    end
 
     def self.parse xml, base = ''
       e = super

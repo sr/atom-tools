@@ -105,6 +105,61 @@ describe Atom::Entry do
     end
   end
 
+  describe 'title element' do
+    before(:each) do
+      @entry = Atom::Entry.new
+    end
+
+    it 'should be nil if not defined' do
+      @entry.title.should be_nil
+
+      @entry.title.to_s.should == ''
+    end
+
+    it 'should accept a simple string' do
+      @entry.title = '<clever thing here>'
+
+      @entry.title.type.should == 'text'
+
+      @entry.title.to_s.should == '<clever thing here>'
+      @entry.title.html.should =~ /^&lt;clever thing/
+      @entry.title.to_xml.to_s.should =~ /&lt;clever thing/
+    end
+
+    it 'should accept an HTML string' do
+      @entry.title = 'even <em>cleverer</em>'
+      @entry.title.type = 'html'
+
+      @entry.title.type.should == 'html'
+
+      @entry.title.to_s.should =~ /even <em>clever/
+      @entry.title.html.should =~ /even <em>clever/
+      @entry.title.to_xml.to_s.should =~ /even &lt;em/
+    end
+
+    it 'should accept an XHTML string' do
+      @entry.title = 'the <strong>cleverest</strong>'
+      @entry.title.type = 'xhtml'
+
+      @entry.title.to_xml.to_s.should =~ /w3.org\/1999\/xhtml.>the <strong>/
+      @entry.title.html.should =~ /the <strong>cleverest/
+    end
+
+    it 'should reject an ill-formed XHTML string' do
+      @entry.title = 'the <strong>cleverest'
+      lambda { @entry.title.type = 'xhtml' }.should raise_error(Atom::ParseError)
+    end
+
+    it 'should accept something like Atom::Text' do
+      title = Atom::Title.new '<3'
+
+      @entry.title = title
+      @entry.title.type.should == 'text'
+
+      @entry.title.to_xml.to_s.should =~ /&lt;3/
+    end
+  end
+
   describe 'updated element' do
     before(:each) do
       @entry = Atom::Entry.new
@@ -192,7 +247,7 @@ describe Atom::Entry do
       it 'should set categories from an array of tags' do
         @entry.tag_with(@tags)
         @entry.categories.length.should == 3
-        @tags.each { |tag| @entry.categories.any? { |c| c['term'] == tag }.should be_true } 
+        @tags.each { |tag| @entry.categories.any? { |c| c['term'] == tag }.should be_true }
       end
 
       it 'should set categories from a space-sperated string of tags' do
@@ -264,6 +319,17 @@ describe Atom::Entry do
     it 'should have APP namespace' do
       @entry.draft!
       read_entry_xml('app:control/app:draft').namespace.should == Atom::PP_NS
+    end
+  end
+
+
+  describe 'extensions' do
+    before(:each) do
+      @entry = Atom::Entry.parse(fixtures('entry-w-ext'))
+    end
+
+    it 'should preserve namespaces' do
+      @entry.to_s.should =~ /purl/
     end
   end
 end

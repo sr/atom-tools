@@ -52,7 +52,13 @@ module Atom
     end
 
     def local_init value = nil
-      @content = value ? value : ''
+      @content = if value.respond_to? :to_xml
+                   value.to_xml[0]
+                 elsif value
+                   value
+                 else
+                   ''
+                 end
     end
 
     def type
