@@ -2,7 +2,36 @@ require "atom/http"
 require "atom/feed"
 
 module Atom
-  # a Collection is an Atom::Feed with extra Protocol-specific methods
+  class Categories < Atom::Element
+    is_element PP_NS, 'categories'
+
+    atom_elements :category, :list, Atom::Category
+
+    attrb ['app', PP_NS], :scheme
+    attrb ['app', PP_NS], :href
+
+    def scheme= s
+      list.each do |cat|
+        unless cat.scheme
+          cat.scheme = s
+        end
+      end
+    end
+
+    # 'fixed' attribute parsing/building
+    attr_accessor :fixed
+
+    on_parse_attr [PP_NS, :fixed] do |e,x|
+      e.set(:fixed, x == 'yes')
+    end
+
+    on_build do |e,x|
+      if e.get(:fixed)
+        e.attributes['fixed'] = 'yes'
+      end
+    end
+  end
+
   class Collection < Atom::Element
     is_element PP_NS, 'collection'
 
@@ -10,6 +39,8 @@ module Atom
 
     atom_element :title, Atom::Title
     atom_attrb :href
+
+    elements ['app', PP_NS], :categories, :categories, Atom::Categories
 
     def accepts
       if @accepts.empty?
@@ -23,11 +54,10 @@ module Atom
       @accepts = array
     end
 
-    attr_reader :uri
     attr_reader :http
 
-    def local_init(uri = '', http = Atom::HTTP.new)
-      @href = uri
+    def local_init(href = '', http = Atom::HTTP.new)
+      @href = href
       @http = http
     end
 
@@ -37,7 +67,7 @@ module Atom
       headers = {"Content-Type" => "application/atom+xml" }
       headers["Slug"] = slug if slug
 
-      @http.post(@uri, entry.to_s, headers)
+      @http.post(@href, entry.to_s, headers)
     end
 
     # PUT an updated version of an entry to the collection
@@ -55,7 +85,7 @@ module Atom
       headers = {"Content-Type" => content_type}
       headers["Slug"] = slug if slug
 
-      @http.post(@uri, data, headers)
+      @http.post(@href, data, headers)
     end
 
     # PUT a media item to the collection
