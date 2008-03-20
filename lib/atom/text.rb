@@ -51,7 +51,9 @@ module Atom
       end
     end
 
-    def local_init value = nil
+    def initialize value = nil
+      super()
+
       @content = if value.respond_to? :to_xml
                    value.to_xml[0]
                  elsif value

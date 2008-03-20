@@ -15,8 +15,8 @@ module Atom
 
     on_build do |e,x|
       unless (v = e.get(:draft)).nil?
-        el = e.mk_elem(x, ['app', PP_NS], 'draft')
-        el.text = (v ? 'yes' : 'no') 
+        el = e.append_elem(x, ['app', PP_NS], 'draft')
+        el.text = (v ? 'yes' : 'no')
       end
     end
   end

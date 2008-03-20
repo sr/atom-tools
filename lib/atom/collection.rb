@@ -56,7 +56,9 @@ module Atom
 
     attr_reader :http
 
-    def local_init(href = '', http = Atom::HTTP.new)
+    def initialize(href = '', http = Atom::HTTP.new)
+      super()
+
       @href = href
       @http = http
     end
