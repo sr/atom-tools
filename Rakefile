@@ -7,7 +7,7 @@ require "spec/rake/spectask"
 require "rake/clean"
 
 NAME = "atom-tools"
-VERS = "1.0.0"
+VERS = "2.0.0"
 
 # the following from markaby-0.5's tools/rakehelp
 def setup_tests
