@@ -412,12 +412,12 @@ module Atom # :nodoc:
          end
        end
 
-      unless root.namespace == self.self_namespace
-        raise Atom::ParseError, "expected element in namespace #{self.self_namespace}, not #{root.namespace}"
-      end
-
       unless root.local_name == self.self_name
         raise Atom::ParseError, "expected element named #{self.self_name}, not #{root.local_name}"
+      end
+
+      unless root.namespace == self.self_namespace
+        raise Atom::ParseError, "expected element in namespace #{self.self_namespace}, not #{root.namespace}"
       end
 
       if root.attributes['xml:base']
