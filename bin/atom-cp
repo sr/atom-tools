@@ -1,104 +1,80 @@
 #!/usr/bin/ruby
 
-require 'atom/collection'
+=begin
+Usage: atom-cp [options] source destination
+    copy the contents of an Atom Collection
 
-def get_http
-  Atom::HTTP.new
-end
+    'source' and 'destination' can be a path on the local filesystem, the
+  URL of an Atom Collection or '-' for stdin/stdout
+=end
 
-def slug_etc_from feed
-  feed.entries.map do |e|
-    slug = nil
-    alt = e.links.find { |l| l['rel'] == 'alternate' }
+require 'atom/tools'
+include Atom::Tools
 
-    if alt
-      slug = alt['href'].split('/').last
+def parse_options
+  options = { :complete => true }
+
+  opts = OptionParser.new do |opts|
+    opts.banner = <<END
+Usage: #{$0} [options] source destination
+    copy an Atom Collection
+
+    'source' and 'destination' can be a path on the local filesystem, the
+  URL of an Atom Collection or '-' for stdin/stdout
+
+END
+
+    opts.on('-c', '--no-complete', "Don't follow previous and next links in the source feed") do
+     options[:complete] = false
     end
+    opts.on('-s', '--infer-slugs', 'Try to infer entry slugs') { options[:infer_slugs] = true }
 
-    [slug, e]
-  end
-end
+    # XXX fetch each entry
 
-def http_to_feed url
-  feed = Atom::Feed.new url, get_http
-  feed.update!
-
-  slug_etc_from feed
-end
-
-def dir_to_feed path
-  Dir[path+'/*.atom'].map do |e|
-    slug = e.match(/.*\/(.*)\.atom/)[1]
-    slug = nil if slug and slug.match /^0x/
-
-    entry = Atom::Entry.parse(File.read(e))
-
-    [slug, entry]
-  end
-end
-
-def stdin_to_feed
-  feed = Atom::Feed.parse $stdin
-
-  slug_etc_from feed
-end
-
-def feed_to_http feed, url
-  coll = Atom::Collection.new url, get_http
-
-  feed.each do |slug,entry|
-    coll.post! entry, slug
-  end
-end
-
-def feed_to_dir feed, path
-  if File.exists? path
-    raise "directory #{path} already exists"
-  else
-    Dir.mkdir path
+    atom_options opts, options
   end
 
-  feed.each do |slug,entry|
-    e = entry.to_s
+  opts.parse!(ARGV)
 
-    new_filename = if slug
-                     path + '/' + slug + '.atom'
-                   else
-                     path + '/0x' + MD5.new(e).hexdigest[0,8] + '.atom'
-                   end
-
-    File.open(new_filename, 'w') { |f| f.write e }
-  end
-end
-
-if ARGV.length < 2
-  $stderr.puts "Usage: #{$0} [source] [destination]"
-  exit
-end
-
-source = ARGV[0]
-dest = ARGV[1]
-
-# do stdin/stdout
-
-if source.match /^http/
-  feed = http_to_feed source
-elsif source == '-'
-  feed = stdin_to_feed
-else
-  feed = dir_to_feed source
-end
-
-if dest.match /^http/
-  feed_to_http feed, dest
-elsif dest == '-'
-  f = Atom::Feed.new
-
-  feed.each do |slug,entry|
-    f.entries << entry
+  if ARGV.length < 2
+    puts opts
+    exit
   end
 
-  puts f.to_s
-else
-  feed_to_dir feed, dest
+  options
+end
+
+def infer_slug entry
+  slug = nil
+  alt = e.links.find { |l| l['rel'] == 'alternate' }
+
+  alt and alt['href'].split('/').last
+end
+
+if __FILE__ == $0
+  require 'optparse'
+
+  options = parse_options
+
+  source = ARGV[0]
+  dest = ARGV[1]
+
+  feed = parse_input source, options
+
+  if options[:verbose]
+    feed.each do |slug,entry|
+      print "got #{entry.title}  "
+      puts "(/#{slug})"
+    end
+  end
+
+  if options[:infer_slugs]
+    feed.map! do |slug,entry|
+      slug ||= infer_slug entry
+
+      [slug, entry]
+    end
+  end
+
+  write_output feed, dest, options
 end

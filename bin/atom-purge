@@ -1,0 +1,75 @@
+#!/usr/bin/ruby
+
+=begin
+Usage: atom-purge [options] collection
+    delete all the entries in an Atom Collection
+
+    'collection' and be a path on the local filesystem, the
+  URL of an Atom Collection or '-' for stdin. the feed is parsed
+  and every Member URI found in it is DELETEd.
+=end
+
+require 'atom/tools'
+include Atom::Tools
+
+def parse_options
+  options = { :complete => true }
+
+  opts = OptionParser.new do |opts|
+    opts.banner = <<END
+Usage: #{$0} [options] collection
+    delete all the entries in an Atom Collection
+
+    'collection' and be a path on the local filesystem, the
+  URL of an Atom Collection or '-' for stdin. the feed is parsed
+  and every Member URI found in it is DELETEd.
+
+END
+
+    opts.on('-c', '--no-complete', "Don't follow previous and next links in the source feed") do
+     options[:complete] = false
+    end
+
+    atom_options opts, options
+  end
+
+  opts.parse!(ARGV)
+
+  if ARGV.length < 1
+    puts opts
+    exit
+  end
+
+  options
+end
+
+if __FILE__ == $0
+  require 'optparse'
+
+  options = parse_options
+
+  source = ARGV[0]
+  dest = ARGV[1]
+
+  feed = parse_input source, options
+
+  if options[:verbose]
+    feed.each do |slug,entry|
+      print "got #{entry.title}  "
+      puts "(/#{slug})"
+    end
+  end
+
+  uris = feed.map do |s,e|
+    e.edit_url
+  end
+
+  http = Atom::HTTP.new
+
+  setup_http http, options
+
+  uris.compact.each do |uri|
+    puts "deleting #{uri}" if options[:verbose]
+    http.delete uri
+  end
+end
