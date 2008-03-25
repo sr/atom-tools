@@ -46,7 +46,7 @@ module Atom
 
       if c.respond_to? :parent
         x << c.dup
-      else
+      elsif c
         x.text = c.to_s
       end
     end
