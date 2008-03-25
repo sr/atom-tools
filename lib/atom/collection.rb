@@ -42,6 +42,10 @@ module Atom
 
     elements ['app', PP_NS], :categories, :categories, Atom::Categories
 
+    def title
+      @title or @feed.title
+    end
+
     def accepts
       if @accepts.empty?
         ['application/atom+xml;type=entry']
@@ -56,11 +60,15 @@ module Atom
 
     attr_reader :http
 
+    attr_reader :feed
+
     def initialize(href = '', http = Atom::HTTP.new)
       super()
 
       @href = href
       @http = http
+
+      @feed = Atom::Feed.new @href, http
     end
 
     # POST an entry to the collection, with an optional slug
