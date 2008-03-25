@@ -44,10 +44,10 @@ module Atom
     on_build do |e,x|
       c = e.instance_variable_get('@content')
 
-      if c.is_a? String
-        x.text = c
-      elsif c
+      if c.respond_to? :parent
         x << c.dup
+      else
+        x.text = c.to_s
       end
     end
 

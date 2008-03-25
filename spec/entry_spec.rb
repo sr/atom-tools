@@ -283,6 +283,19 @@ describe Atom::Entry do
       @entry.edit_url = 'http://example.org/entries/foo'
       @entry.edit_url.should == 'http://example.org/entries/foo'
     end
+
+    it 'should not erase other links' do
+      link = @entry.links.new :rel => 'related', :href => 'http://example.org'
+
+      @entry.edit_url = 'http://example.com/entries/foo'
+      @entry.links.length.should == 2
+      @entry.links.should include(link)
+    end
+
+    it 'should accept a URI object' do
+      @entry.edit_url = URI.parse('http://example.com/entries/foo')
+      @entry.to_s.should =~ /example.com\/entries/
+    end
   end
 
   describe 'draft element' do
@@ -306,14 +319,6 @@ describe Atom::Entry do
     it 'should be declarable as a draft using #draft!' do
       @entry.draft!
       @entry.should be_draft
-    end
-
-    it 'should not erase other link' do
-      link = @entry.links.new :rel => 'related', :href => 'http://example.org'
-
-      @entry.edit_url = 'http://example.com/entries/foo'
-      @entry.links.length.should == 2
-      @entry.links.should include(link)
     end
 
     it 'should have APP namespace' do

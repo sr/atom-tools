@@ -285,7 +285,7 @@ module Atom # :nodoc:
 
       self.on_build do |e,x|
         if v = e.get(name)
-          e.set_atom_attrb(x, name, v)
+          e.set_atom_attrb(x, name, v.to_s)
         end
       end
     end
