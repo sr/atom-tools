@@ -36,9 +36,14 @@ module Atom
     is_element PP_NS, 'collection'
 
     strings ['app', PP_NS], :accept, :accepts
+    attrb ['app', PP_NS], :href
+
+    def_set :href do |href|
+      @href = href
+      @feed = Atom::Feed.new @href, @http
+    end
 
     atom_element :title, Atom::Title
-    atom_attrb :href
 
     elements ['app', PP_NS], :categories, :categories, Atom::Categories
 
@@ -62,13 +67,14 @@ module Atom
 
     attr_reader :feed
 
-    def initialize(href = '', http = Atom::HTTP.new)
+    def initialize(href = nil, http = Atom::HTTP.new)
       super()
 
-      @href = href
-      @http = http
+      if href
+        self.href = href
+      end
 
-      @feed = Atom::Feed.new @href, http
+      @http = http
     end
 
     # POST an entry to the collection, with an optional slug

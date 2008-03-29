@@ -45,6 +45,8 @@ describe Atom::Collection do
 
     it 'should parse href correctly' do
       @entries.href.should == 'http://example.org/blog/main'
+      @entries.feed.uri.to_s.should == 'http://example.org/blog/main'
+
       @pictures.href.should == 'http://example.org/blog/pic'
       @links.href.should == 'http://example.org/sidebar/list'
     end
