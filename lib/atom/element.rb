@@ -192,15 +192,18 @@ module Atom # :nodoc:
 
     # an element that is parsed by Element descendant 'klass'
     def element(ns, name, klass)
+      el_name = name
+      name = name.to_s.gsub(/-/, '_')
+
       attr_reader name
 
-      self.on_parse [ns[1], name] do |e,x|
+      self.on_parse [ns[1], el_name] do |e,x|
         e.instance_variable_set("@#{name}", klass.parse(x, e.base))
       end
 
       self.on_build do |e,x|
         if v = e.get(name)
-          el = e.append_elem(x, ns, name)
+          el = e.append_elem(x, ns, el_name)
           v.build(el)
         end
       end
