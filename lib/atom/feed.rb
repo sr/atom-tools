@@ -192,30 +192,19 @@ module Atom
       coll = self.class.parse(coll.root, self.base.to_s)
       merge! coll
 
-      if nl = next_link
-        abs_uri = @uri + nl["href"]
+      if abs_uri = next_link
         @next = self.class.new(abs_uri.to_s, @http)
       end
 
-      if pl = previous_link
-        abs_uri = @uri + pl["href"]
+      if abs_uri = previous_link
         @prev = self.class.new(abs_uri.to_s, @http)
       end
 
       self
     end
 
-    def previous_link
-      links.find do |l|
-        l.rel == "previous" and l.type.match(/^application\/atom\+xmll/)
-      end
-    end
-
-    def next_link
-      links.find do |l|
-        l.rel == "next" and l.type.match(/^application\/atom\+xmll/)
-      end
-    end
+    atom_link :previous_link, :rel => 'previous'
+    atom_link :next_link, :rel => 'next'
 
     # adds an entry to this feed. if this feed already contains an
     # entry with the same id, the newest one is used.
