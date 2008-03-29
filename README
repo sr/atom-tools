@@ -43,10 +43,10 @@ Things are explained in more detail in the RDoc.
   coll = service.workspaces.first.collections.first
     # => <http://necronomicorp.com/testatom?app entries: 0 title='testing: entry endpoint'>
 
-  coll.update!
+  coll.feed.update!
     # => <http://necronomicorp.com/testatom?app entries: 10 title='testing the APP'>
 
-  entry = coll.entries.first
+  entry = coll.feed.entries.first
   entry.title
     # => 'html entities'#text
 
@@ -57,47 +57,7 @@ Things are explained in more detail in the RDoc.
   coll.put! entry
     # => #<Net::HTTPOK 200 OK readbody=true>
 
-  coll.entries.first.title
+  coll.feed.entries.first.title
     # => 'HTML entities'#text
 
-For details on authentication, see the documentation for Atom::HTTP
-
-== Advanced Use
-
-=== Extension Elements
-
-  irt = REXML::Element.new("in-reply-to")
-  irt.add_namespace "http://purl.org/syndication/thread/1.0"
-
-  irt.attributes["ref"] = "tag:entries.com,2005:1"
-
-  entry.extensions << irt
-
-  entry.to_s
-    # => '<entry xmlns="http://www.w3.org/2005/Atom"><in-reply-to ref="tag:entries.com,2005:1" xmlns="http://purl.org/syndication/thread/1.0"/></entry>'
-
-== YAML
-
-if you feel like writing this stuff by hand, atom-tools can slurp an
-atom:entry from YAML:
-
-  require "atom/yaml"
-
-  yaml = <<END
-    title: Atom-Drunk Pirates Run Amok!
-    tags: tag1 tag2
-    authors:
-    -
-      name: Brendan Taylor
-      email: whateley@gmail.com
-    -
-      name: Harvey
-      uri: http://fake.com/
-
-    content: |
-      <p>blah blah blah blah</p>
-
-      <p>and so on.</p>
-  END
-
-  entry = Atom::Entry.from_yaml(yaml)
+For details on authentication, see the documentation for Atom::HTTP.
