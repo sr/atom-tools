@@ -37,7 +37,7 @@ module Atom
             # content has a namespace prefix, strip prefixes from it and all
             # XHTML children
 
-            REXML::XPath.each(c, '//xhtml:*', 'xhtml' => XHTML::NS) do |x|
+            REXML::XPath.each(c, './/xhtml:*', 'xhtml' => XHTML::NS) do |x|
               x.name = x.name
             end
           end
