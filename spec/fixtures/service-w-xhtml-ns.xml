@@ -5,10 +5,7 @@
 
     <collection title="Releases" href="../entries/?yanel.resource.viewid=atom">
       <atom:title type="html">Early Yulup &lt;i>Releases&lt;/i></atom:title>
-
     </collection>
-
-
   </workspace>
 
   <workspace title="Yulup Website">
@@ -20,8 +17,5 @@
 </atom:title>
 
     </collection>
-
-
   </workspace>
-
 </service>

@@ -12,7 +12,16 @@ describe Atom::Service do
       @service.workspaces.length.should == 2
     end
 
-    it 'should parse XHTML in the non-default namespace correctly' do
+    it 'should absolutize relative hrefs' do
+      svc = Atom::Service.parse(
+        fixtures('service-w-xhtml-ns'),
+        'http://example.org/introspection/')
+
+      coll = svc.workspaces.first.collections.first
+      coll.href.should == "http://example.org/entries/?yanel.resource.viewid=atom"
+    end
+
+    it 'should parse XHTML outside the default namespace correctly' do
       xhtml_svc = Atom::Service.parse(fixtures('service-w-xhtml-ns'))
 
       xhtml_svc.workspaces.length.should == 2

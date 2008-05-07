@@ -596,7 +596,7 @@ module Atom # :nodoc:
       e = super
 
       # URL absolutization
-      if e.base and e.href
+      if !e.base.empty? and e.href
         e.href = (e.base.to_uri + e.href).to_s
       end
 

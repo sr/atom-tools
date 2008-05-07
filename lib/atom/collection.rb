@@ -77,6 +77,17 @@ module Atom
       end
     end
 
+    def self.parse xml, base = ''
+      e = super
+
+      # URL absolutization
+      if !e.base.empty? and e.href
+        e.href = (e.base.to_uri + e.href).to_s
+      end
+
+      e
+    end
+
     # POST an entry to the collection, with an optional slug
     def post!(entry, slug = nil)
       raise "Cowardly refusing to POST a non-Atom::Entry" unless entry.is_a? Atom::Entry
