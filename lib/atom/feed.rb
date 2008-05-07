@@ -93,7 +93,7 @@ module Atom
     end
 
     # gets everything in the logical feed (could be a lot of stuff)
-    # (see <http://www.ietf.org/internet-drafts/draft-nottingham-atompub-feed-history-05.txt>)
+    # (see RFC 5005)
     def get_everything!
       self.update!
 
