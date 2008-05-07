@@ -70,11 +70,11 @@ module Atom
     def initialize(href = nil, http = Atom::HTTP.new)
       super()
 
+      @http = http
+
       if href
         self.href = href
       end
-
-      @http = http
     end
 
     # POST an entry to the collection, with an optional slug
