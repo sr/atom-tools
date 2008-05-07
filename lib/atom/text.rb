@@ -27,10 +27,20 @@ module Atom
 
       if x.is_a? REXML::Element
         if type == 'xhtml'
-          x = x.elements['div']
+          x = e.get_elem x, XHTML::NS, 'div'
+
           raise Atom::ParseError, 'xhtml content needs div wrapper' unless x
 
           c = x.dup
+
+          unless x.prefix.empty?
+            # content has a namespace prefix, strip prefixes from it and all
+            # XHTML children
+
+            REXML::XPath.each(c, '//xhtml:*', 'xhtml' => XHTML::NS) do |x|
+              x.name = x.name
+            end
+          end
         else
           c = x[0] ? x[0].value : nil
         end

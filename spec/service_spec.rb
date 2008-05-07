@@ -11,6 +11,14 @@ describe Atom::Service do
     it 'should parse workspace elements correctly' do
       @service.workspaces.length.should == 2
     end
+
+    it 'should parse XHTML in the non-default namespace correctly' do
+      xhtml_svc = Atom::Service.parse(fixtures('service-w-xhtml-ns'))
+
+      xhtml_svc.workspaces.length.should == 2
+      xhtml_coll = xhtml_svc.workspaces.last.collections.first
+      xhtml_coll.title.html.strip.should == 'Yulup <b>Releases</b>'
+    end
   end
 end
 
