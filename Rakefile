@@ -39,7 +39,7 @@ def setup_gem(pkg_name, pkg_version, author, summary, dependencies, test_file)
     s.platform = Gem::Platform::RUBY
     s.author = author
     s.email = 'whateley@gmail.com'
-    s.homepage = 'http://code.necronomicorp.com'
+    s.homepage = 'http://code.necronomicorp.com/atom-tools'
     s.rubyforge_project = 'ibes'
     s.summary = summary
     s.test_file = test_file
