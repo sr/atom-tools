@@ -38,6 +38,9 @@ def setup_gem(pkg_name, pkg_version, author, summary, dependencies, test_file)
     s.version = pkg_version
     s.platform = Gem::Platform::RUBY
     s.author = author
+    s.email = 'whateley@gmail.com'
+    s.homepage = 'http://code.necronomicorp.com'
+    s.rubyforge_project = 'ibes'
     s.summary = summary
     s.test_file = test_file
     s.has_rdoc = true
