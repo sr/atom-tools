@@ -4,7 +4,7 @@ require "uri"
 
 require "atom/cache"
 
-require "sha1"
+require "digest/sha1"
 require "digest/md5"
 
 module URI # :nodoc: all

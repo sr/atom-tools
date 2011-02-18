@@ -1,5 +1,6 @@
 require "time"
 require "rexml/element"
+require "uri"
 
 require 'uri'
 
@@ -597,6 +598,10 @@ module Atom # :nodoc:
 
       # URL absolutization
       if !e.base.empty? and e.href
+        # url-encode necessary chars
+        e.base = URI.escape e.base
+        e.href = URI.escape e.href
+
         e.href = (e.base.to_uri + e.href).to_s
       end
 
