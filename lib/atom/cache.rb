@@ -3,7 +3,7 @@
 #
 # used under the terms of the MIT license
 
-require "md5"
+require "digest/md5"
 
 def normalize_header_names _headers
   headers = {}

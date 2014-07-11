@@ -157,7 +157,7 @@ module Atom
     # changes, new entries, &c.
     #
     # (note that this is different from Atom::Entry#updated!
-    def update!
+    def update!(check_content_type = true)
       raise(RuntimeError, "can't fetch without a uri.") unless @uri
 
       res = @http.get(@uri, "Accept" => "application/atom+xml")
@@ -172,9 +172,11 @@ module Atom
       end
 
       # we'll be forgiving about feed content types.
-      res.validate_content_type(["application/atom+xml",
-                                  "application/xml",
-                                  "text/xml"])
+      if check_content_type
+        res.validate_content_type(["application/atom+xml",
+                                    "application/xml",
+                                    "text/xml"])
+      end
 
       @etag = res["ETag"] if res["ETag"]
 
